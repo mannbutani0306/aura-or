@@ -2,16 +2,15 @@
 
 ## Checklist
 
-- [x] C1 — Audit the current design system and validate the baseline with `npm run lint` and `npm run build`.
-- [x] C2 — Close the obvious design-system gaps: remove legacy style tokens and replace visible leaked labels such as "Demo mode" with product-safe wording.
-- [x] C3 — Command view: map-framed dispatch board, call and unit slips, live KPI strip, and mobile sheet styling in the Dispatch Slip language.
-- [ ] C4 — Dispatch view: solve board, comparison ledger, receipt cards, and action-sheet polish without changing logic.
-- [ ] C5 — Route and fleet screens: route trace polish, fleet register, emergency table, and final user-facing copy checks.
-- [ ] C6 — Final verification, commit message, and GitHub push.
+- [x] STEP 1 — Add typed EMS/config repositories, sample-based Insights charts/filters/findings, SQL copy controls, and read `app_config.sla_min` in Command and Dispatch.
+- [ ] STEP 2 — Add the Pulse server lifecycle/API and header control; label generated calls and explain provenance.
+- [ ] STEP 3 — Complete reduced-motion-aware motion, responsive behavior, accessibility, and performance requirements.
+- [ ] STEP 4 — Add Playwright screenshots and QA checklist, review screenshots/copy, run verification, and push.
 
 ## Notes
 
 - Verified the existing project already contains most of the Dispatch Slip primitives and design-system scaffolding.
 - The priority gap cleanup focused on the actual leaked user-facing copy and legacy token cleanup rather than rewriting the already-established app shell.
 - Command-step pass kept behavior intact while replacing the heavy panel styling with smaller paper slips, tactile framing, and live KPI cards.
+- Step 1 lint passes. The configured Supabase API reports `ems_cases` and the three `v_ems_*` views missing from its schema cache, so Insights shows an explicit unavailable state rather than fabricated sample metrics.
 - The hidden /#/kit route remains available for design-system inspection, but it is not surfaced in the main navigation list.

@@ -6,4 +6,7 @@ export const dataSource: DataSource = supabaseDataSource;
 
 export * from './DataSource';
 export * from './supabaseClient';
+export * from './emsRepository';
+export * from './configRepository';
+export * from './provenance';
 export { supabaseDataSource };

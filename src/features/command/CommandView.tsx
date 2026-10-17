@@ -7,7 +7,7 @@ import {
   EmergencyPriority,
   Dispatch,
 } from '../../types';
-import { dataSource } from '../../data';
+import { dataSource, getSlaBenchmarkMinutes } from '../../data';
 import { MaduraiMap } from './MaduraiMap';
 import { LiveTimelineStrip } from './LiveTimelineStrip';
 import { CallsSlip } from './CallsSlip';
@@ -80,6 +80,8 @@ export function CommandView({
   const [connStatus, setConnStatus] = useState<ConnectionStatus>(dataSource.getConnectionStatus());
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(dataSource.getLastSyncedAt());
   const [roundTripMs, setRoundTripMs] = useState<number>(dataSource.getRoundTripMs());
+  const [slaBenchmarkMin, setSlaBenchmarkMin] = useState<number | null>(null);
+  const [slaBenchmarkError, setSlaBenchmarkError] = useState<string | null>(null);
 
   useEffect(() => {
     const unsub = dataSource.subscribeConnection((status, rtt, lastSync) => {
@@ -88,6 +90,15 @@ export function CommandView({
       setLastSyncedAt(lastSync);
     });
     return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    let isCurrent = true;
+    getSlaBenchmarkMinutes().then(
+      (minutes) => { if (isCurrent) setSlaBenchmarkMin(minutes); },
+      (reason: unknown) => { if (isCurrent) setSlaBenchmarkError(reason instanceof Error ? reason.message : 'SLA benchmark unavailable'); }
+    );
+    return () => { isCurrent = false; };
   }, []);
 
   // Toast Notifications
@@ -325,6 +336,17 @@ export function CommandView({
             </span>
             <span className="font-mono-numbers text-[9px] sm:text-[10px] text-[var(--ink-muted)] uppercase tracking-wider mt-0.5 sm:mt-1">
               min wait
+            </span>
+          </div>
+
+          <div className="w-[1px] h-6 sm:h-7 bg-[var(--line)] shrink-0" />
+
+          <div className="flex flex-col shrink-0" title={slaBenchmarkError ?? undefined}>
+            <span className="font-serif-display text-xl sm:text-3xl text-[var(--ink)] leading-none tabular-nums">
+              {slaBenchmarkMin === null ? '—' : slaBenchmarkMin}
+            </span>
+            <span className="font-mono-numbers text-[9px] sm:text-[10px] text-[var(--ink-muted)] uppercase tracking-wider mt-0.5 sm:mt-1">
+              SLA min
             </span>
           </div>
         </div>

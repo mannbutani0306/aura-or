@@ -1,234 +1,180 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Panel, ProvenanceChip, Button, AnimatedCounter, SectionTitle, ChevronRule } from '../../design-system';
-import { dataSource } from '../../data';
-import { Ambulance, Emergency, Dispatch } from '../../types';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ArrowRight } from 'lucide-react';
+import { Button, SectionTitle, Stamp } from '../../design-system';
+import {
+  EmsCase,
+  EMS_SAMPLE_LABEL,
+  getEmsCases,
+  getEmsByHour,
+  getEmsByType,
+  getEmsSlaByTriage,
+} from '../../data';
+import {
+  HourDemandClock,
+  ResponseDotStrip,
+  TriageTimingBars,
+  TypeRankList,
+} from './SampleCharts';
 
 interface InsightsViewProps {
   onNavigate: (route: string) => void;
 }
 
+type FilterValue = 'All' | string;
+
+const sqlValue = (value: string) => `'${value.replaceAll("'", "''")}'`;
+
+function FilterChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={`rounded-full border-2 px-3 py-1.5 font-mono-numbers text-[10px] font-bold uppercase tracking-[0.1em] transition-all focus-ring ${active
+        ? 'border-[var(--line)] bg-[var(--ink)] text-[var(--bg-app)] shadow-[2px_2px_0_var(--signal)]'
+        : 'border-[var(--line)] bg-[var(--surface)] text-[var(--ink-muted)] hover:-translate-y-0.5 hover:text-[var(--ink)]'
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
 export function InsightsView({ onNavigate }: InsightsViewProps) {
-  const [ambulances, setAmbulances] = useState<Ambulance[]>([]);
-  const [emergencies, setEmergencies] = useState<Emergency[]>([]);
-  const [dispatches, setDispatches] = useState<Dispatch[]>([]);
+  const [cases, setCases] = useState<readonly EmsCase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [viewWarning, setViewWarning] = useState<string | null>(null);
+  const [district, setDistrict] = useState<FilterValue>('All');
+  const [callType, setCallType] = useState<FilterValue>('All');
 
   useEffect(() => {
+    let isCurrent = true;
     const load = async () => {
       try {
-        const [a, e, d] = await Promise.all([
-          dataSource.getAmbulances(),
-          dataSource.getEmergencies(),
-          dataSource.getDispatches(),
-        ]);
-        setAmbulances(a);
-        setEmergencies(e);
-        setDispatches(d);
-      } finally {
+        const rows = await getEmsCases();
+        if (isCurrent) setCases(rows);
+      } catch (reason: unknown) {
+        if (isCurrent) setError(reason instanceof Error ? reason.message : 'Unable to load EMS sample');
+      }
+
+      const views = await Promise.allSettled([getEmsByHour(), getEmsByType(), getEmsSlaByTriage()]);
+      if (isCurrent) {
+        const failures = views.flatMap((result) => result.status === 'rejected'
+          ? [result.reason instanceof Error ? result.reason.message : 'An EMS summary view is unavailable']
+          : []);
+        setViewWarning(failures.length ? failures.join(' · ') : null);
         setIsLoading(false);
       }
     };
-
-    load();
-    const unsub = dataSource.subscribe(load);
-    return () => unsub();
+    void load();
+    return () => { isCurrent = false; };
   }, []);
 
-  // 1. Real Fleet Utilization
-  const utilizationPct = useMemo(() => {
-    if (ambulances.length === 0) return 0;
-    const active = ambulances.filter((a) => a.status === 'Busy').length;
-    return Math.round((active / ambulances.length) * 100);
-  }, [ambulances]);
+  const districts = useMemo(() => [...new Set(cases.map((item) => item.district))].sort(), [cases]);
+  const callTypes = useMemo(() => [...new Set(cases.map((item) => item.callType))].sort(), [cases]);
+  const filteredCases = useMemo(() => cases.filter((item) =>
+    (district === 'All' || item.district === district) &&
+    (callType === 'All' || item.callType === callType)
+  ), [cases, district, callType]);
 
-  // 2. Real Critical Emergency Average Wait / ETA
-  const criticalAvgWait = useMemo(() => {
-    const criticalCalls = emergencies.filter((e) => e.priority === 'Critical');
-    if (criticalCalls.length === 0) return 0;
-    const now = Date.now();
-    const totalWaitMs = criticalCalls.reduce(
-      (acc, c) => acc + Math.max(0, now - c.requestedAt),
-      0
-    );
-    const avgMin = totalWaitMs / criticalCalls.length / 60000;
-    return Number(avgMin.toFixed(1));
-  }, [emergencies]);
+  const metrics = useMemo(() => {
+    const within = filteredCases.filter((item) => item.responseSec <= item.benchmarkSec).length;
+    const percentWithin = filteredCases.length ? (within / filteredCases.length) * 100 : 0;
+    const hourly = Array.from({ length: 24 }, (_, hour) => ({
+      hour,
+      count: filteredCases.filter((item) => item.hour === hour).length,
+    }));
+    const worstHour = [...hourly].sort((a, b) => b.count - a.count)[0];
+    const triageBreaches = [...new Set(filteredCases.map((item) => item.triage))].map((priority) => ({
+      priority,
+      count: filteredCases.filter((item) => item.triage === priority && item.responseSec > item.benchmarkSec).length,
+    })).sort((a, b) => b.count - a.count);
+    return { percentWithin, worstHour, worstPriority: triageBreaches[0] };
+  }, [filteredCases]);
 
-  // 3. Real Dispatch Travel Reduction vs Benchmark
-  const { reductionPct, benchmarkBars, optimizedBars, dispatchPairs } = useMemo(() => {
-    if (dispatches.length === 0) {
-      return { reductionPct: 0, benchmarkBars: [], optimizedBars: [], dispatchPairs: [] };
-    }
-
-    let totalEta = 0;
-    let totalBenchmark = 0;
-    const pairs: Array<{ label: string; baseline: number; optimized: number }> = [];
-
-    dispatches.slice(0, 6).forEach((d) => {
-      const eta = d.etaMin || 1;
-      const bench = d.benchmarkMin || Math.max(eta * 1.3, eta + 3);
-      totalEta += eta;
-      totalBenchmark += bench;
-      pairs.push({
-        label: `${d.emergencyId} ➔ ${d.ambulanceId}`,
-        baseline: Number(bench.toFixed(1)),
-        optimized: Number(eta.toFixed(1)),
-      });
-    });
-
-    const diff = totalBenchmark > 0 ? ((totalBenchmark - totalEta) / totalBenchmark) * 100 : 0;
-    const bBars = pairs.map((p) => p.baseline);
-    const oBars = pairs.map((p) => p.optimized);
-
-    return {
-      reductionPct: Math.max(0, Number(diff.toFixed(1))),
-      benchmarkBars: bBars,
-      optimizedBars: oBars,
-      dispatchPairs: pairs,
-    };
-  }, [dispatches]);
-
-  const maxBarValue = useMemo(() => {
-    const all = [...benchmarkBars, ...optimizedBars];
-    return all.length > 0 ? Math.max(...all, 15) : 20;
-  }, [benchmarkBars, optimizedBars]);
+  const whereSql = useMemo(() => {
+    const predicates: string[] = [];
+    if (district !== 'All') predicates.push(`district = ${sqlValue(district)}`);
+    if (callType !== 'All') predicates.push(`call_type = ${sqlValue(callType)}`);
+    return predicates.length ? ` WHERE ${predicates.join(' AND ')}` : '';
+  }, [district, callType]);
+  const responseSql = `SELECT id, response_sec, benchmark_sec FROM ems_cases${whereSql} ORDER BY response_sec;`;
+  const hourSql = `SELECT EXTRACT(HOUR FROM call_timestamp) AS hour, COUNT(*) AS calls, COUNT(*) FILTER (WHERE response_sec <= benchmark_sec) AS within_benchmark FROM ems_cases${whereSql} GROUP BY hour ORDER BY hour;`;
+  const triageSql = `SELECT triage, AVG(response_sec) AS avg_response_sec, MAX(response_sec) AS worst_response_sec, COUNT(*) FILTER (WHERE response_sec > benchmark_sec) AS breaches FROM ems_cases${whereSql} GROUP BY triage ORDER BY triage;`;
+  const typeSql = `SELECT call_type, COUNT(*) AS calls FROM ems_cases${whereSql} GROUP BY call_type ORDER BY calls DESC;`;
 
   return (
-    <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto pb-16">
-      {/* Header with SectionTitle */}
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 pb-16">
       <SectionTitle
-        eyebrow="MADURAI BENCHMARKS"
-        title="Response benchmarks & travel analysis"
-        accentWord="benchmarks"
-        action={
-          <div className="flex items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={() => onNavigate('dispatch')}>
-              Dispatch
-            </Button>
-            <Button variant="primary" size="sm" onClick={() => onNavigate('command')}>
-              Command
-            </Button>
-          </div>
-        }
+        eyebrow="MADURAI EMS SAMPLE"
+        title="Response patterns & demand"
+        accentWord="demand"
+        action={<Button variant="secondary" size="sm" onClick={() => onNavigate('command')} icon={<ArrowRight size={14} />}>Command</Button>}
       />
 
-      {/* KPI Cards in Dispatch Slip style */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Panel title="Travel Reduction" badge="DERIVED">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-baseline gap-2">
-              <span className="font-serif-display text-4xl font-extrabold text-[var(--unit-available)] tabular-nums">
-                <AnimatedCounter value={reductionPct} decimals={1} />
-              </span>
-              <span className="font-mono-numbers text-xs font-bold text-[var(--ink-muted)]">% reduction</span>
-            </div>
-            <span className="text-xs text-[var(--ink-muted)] mt-1 font-mono-numbers">
-              {dispatches.length > 0
-                ? `${dispatches.length} active dispatches vs baseline`
-                : 'Awaiting dispatches to benchmark'}
-            </span>
-          </div>
-        </Panel>
+      {isLoading ? (
+        <div role="status" className="rounded-[20px] border-2 border-[var(--line)] bg-[var(--surface-raised)] p-8 text-center font-mono-numbers text-xs uppercase tracking-[0.15em] text-[var(--ink-muted)]">Loading sample rows…</div>
+      ) : error ? (
+        <div role="alert" className="rounded-[20px] border-2 border-[var(--critical)] bg-[var(--surface-raised)] p-5 shadow-[4px_4px_0_var(--shadow-ink)]">
+          <div className="mb-2 flex items-center gap-3"><Stamp variant="STAT" color="high">SAMPLE UNAVAILABLE</Stamp><span className="font-mono-numbers text-xs font-bold text-[var(--critical)]">EMS DATA NOT LOADED</span></div>
+          <p className="font-mono-numbers text-xs text-[var(--ink)]">{error}</p>
+          <p className="mt-2 font-mono-numbers text-[10px] text-[var(--ink-muted)]">No sample values are shown until the table is available.</p>
+        </div>
+      ) : (
+        <>
+          {viewWarning && <div role="status" className="border-l-4 border-[var(--high)] bg-[var(--surface-raised)] px-3 py-2 font-mono-numbers text-[10px] text-[var(--ink-muted)]">Summary views unavailable; displayed metrics are calculated from the case rows. {viewWarning}</div>}
 
-        <Panel title="Critical Response Wait" badge="DERIVED">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-baseline gap-2">
-              <span className="font-serif-display text-4xl font-extrabold text-[var(--critical)] tabular-nums">
-                <AnimatedCounter value={criticalAvgWait} decimals={1} />
-              </span>
-              <span className="font-mono-numbers text-xs font-bold text-[var(--ink-muted)]">min avg</span>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-y-2 border-[var(--line)] py-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="mr-1 font-mono-numbers text-[9px] font-bold uppercase tracking-[0.16em] text-[var(--ink-muted)]">District</span>
+              <FilterChip label="All" active={district === 'All'} onClick={() => setDistrict('All')} />
+              {districts.map((value) => <FilterChip key={value} label={value} active={district === value} onClick={() => setDistrict(value)} />)}
             </div>
-            <span className="text-xs text-[var(--ink-muted)] mt-1 font-mono-numbers">
-              Oldest unassigned critical call wait time
-            </span>
-          </div>
-        </Panel>
-
-        <Panel title="Fleet Deployment" badge="REAL SAMPLE">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-baseline gap-2">
-              <span className="font-serif-display text-4xl font-extrabold text-[var(--ink)] tabular-nums">
-                <AnimatedCounter value={utilizationPct} />
-              </span>
-              <span className="font-mono-numbers text-xs font-bold text-[var(--ink-muted)]">% active</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="mr-1 font-mono-numbers text-[9px] font-bold uppercase tracking-[0.16em] text-[var(--ink-muted)]">Call type</span>
+              <FilterChip label="All" active={callType === 'All'} onClick={() => setCallType('All')} />
+              {callTypes.map((value) => <FilterChip key={value} label={value} active={callType === value} onClick={() => setCallType(value)} />)}
             </div>
-            <span className="text-xs text-[var(--ink-muted)] mt-1 font-mono-numbers">
-              {ambulances.filter((a) => a.status === 'Busy').length} busy of {ambulances.length} fleet units
-            </span>
           </div>
-        </Panel>
-      </div>
 
-      {/* Side-by-Side Response Benchmark Comparison Chart */}
-      <Panel title="Dispatch Response Comparison (Minutes)" badge="DERIVED">
-        {dispatchPairs.length === 0 ? (
-          <div className="py-12 text-center text-xs font-mono-numbers text-[var(--ink-muted)] font-bold">
-            No active dispatches available for benchmark comparison.
-          </div>
-        ) : (
-          <div className="flex flex-col gap-6 pt-2">
-            <div className="flex items-center gap-6 text-xs font-mono-numbers font-bold">
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full border border-[var(--line)] bg-[var(--ink-subtle)]" />
-                <span>Baseline First-Come</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full border border-[var(--line)] bg-[var(--unit-available)]" />
-                <span className="text-[var(--unit-available)] font-bold">Optimized Dispatch</span>
+          <section className="flex flex-wrap items-end justify-between gap-4 border-b-2 border-[var(--line)] pb-4" aria-label="Benchmark summary">
+            <div>
+              <span className="font-mono-numbers text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--ink-muted)]">Within response benchmark</span>
+              <div className="mt-1 flex items-baseline gap-2">
+                <span className="font-serif-display text-6xl leading-none tabular-nums text-[var(--ink)]">{metrics.percentWithin.toFixed(1)}%</span>
+                <span className="font-mono-numbers text-xs text-[var(--ink-muted)]">{filteredCases.filter((item) => item.responseSec <= item.benchmarkSec).length}/{filteredCases.length} cases</span>
               </div>
             </div>
+            <Stamp variant="STAT" color="available">{EMS_SAMPLE_LABEL} · n={filteredCases.length}</Stamp>
+          </section>
 
-            <div className="flex flex-col gap-4">
-              {dispatchPairs.map((pair, idx) => {
-                const basePct = (pair.baseline / maxBarValue) * 100;
-                const optPct = (pair.optimized / maxBarValue) * 100;
-
-                return (
-                  <div key={idx} className="flex flex-col gap-1.5 p-3 rounded-[12px] bg-[var(--surface-raised)] border-2 border-[var(--line)] shadow-[2px_2px_0_var(--shadow-ink)]">
-                    <div className="flex items-center justify-between text-xs font-mono-numbers font-bold">
-                      <span className="text-[var(--ink)]">{pair.label}</span>
-                      <span className="text-[var(--unit-available)]">
-                        -{(pair.baseline - pair.optimized).toFixed(1)}m savings
-                      </span>
-                    </div>
-
-                    {/* Bars */}
-                    <div className="flex flex-col gap-1">
-                      {/* Baseline */}
-                      <div className="flex items-center gap-2">
-                        <div className="w-16 text-[10px] font-mono-numbers text-[var(--ink-muted)]">Base</div>
-                        <div className="flex-1 bg-[var(--surface)] h-4 rounded-full border border-[var(--line)] overflow-hidden">
-                          <div
-                            className="bg-[var(--ink-subtle)] h-full rounded-full transition-all duration-300"
-                            style={{ width: `${basePct}%` }}
-                          />
-                        </div>
-                        <span className="w-12 text-right text-xs font-mono-numbers tabular-nums text-[var(--ink-muted)]">
-                          {pair.baseline}m
-                        </span>
-                      </div>
-
-                      {/* Optimized */}
-                      <div className="flex items-center gap-2">
-                        <div className="w-16 text-[10px] font-mono-numbers text-[var(--unit-available)] font-bold">AURA</div>
-                        <div className="flex-1 bg-[var(--surface)] h-4 rounded-full border border-[var(--line)] overflow-hidden">
-                          <div
-                            className="bg-[var(--unit-available)] h-full rounded-full transition-all duration-300"
-                            style={{ width: `${optPct}%` }}
-                          />
-                        </div>
-                        <span className="w-12 text-right text-xs font-mono-numbers tabular-nums font-bold text-[var(--unit-available)]">
-                          {pair.optimized}m
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+            <ResponseDotStrip cases={filteredCases} sql={responseSql} />
+            <HourDemandClock cases={filteredCases} sql={hourSql} />
+            <TriageTimingBars cases={filteredCases} sql={triageSql} />
+            <TypeRankList cases={filteredCases} sql={typeSql} />
           </div>
-        )}
-      </Panel>
+
+          <section aria-labelledby="findings-title" className="border-t-2 border-[var(--line)] pt-4">
+            <h2 id="findings-title" className="mb-3 font-serif-display text-2xl text-[var(--ink)]">Findings</h2>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <Finding emoji="🕒" text={metrics.worstHour?.count ? `Demand peaks at ${String(metrics.worstHour.hour).padStart(2, '0')}:00 with ${metrics.worstHour.count} calls.` : 'No hourly peak in the selected sample.'} />
+              <Finding emoji="🚑" text={metrics.worstPriority?.count ? `${metrics.worstPriority.priority} has the most benchmark breaches (${metrics.worstPriority.count}).` : 'No benchmark breaches in the selected sample.'} />
+              <Finding emoji="📍" text={`${metrics.percentWithin.toFixed(1)}% of selected cases meet their response benchmark.`} />
+            </div>
+          </section>
+        </>
+      )}
+    </div>
+  );
+}
+
+function Finding({ emoji, text }: { emoji: string; text: string }) {
+  return (
+    <div className="relative min-h-24 border-2 border-[var(--line)] bg-[var(--sun)] px-4 py-3 shadow-[4px_4px_0_var(--shadow-ink)]">
+      <span className="absolute -top-3 left-3 text-xl" aria-hidden="true">{emoji}</span>
+      <p className="pt-2 font-ui text-sm font-semibold leading-snug text-[#302508]">{text}</p>
     </div>
   );
 }

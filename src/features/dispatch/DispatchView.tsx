@@ -5,7 +5,7 @@ import {
   RoadEdge,
   Zone,
 } from '../../types';
-import { dataSource } from '../../data';
+import { dataSource, getSlaBenchmarkMinutes } from '../../data';
 import {
   SolveRequest,
   SolveResponse,
@@ -49,6 +49,8 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
   const [zones, setZones] = useState<Zone[]>([]);
   const [connStatus, setConnStatus] = useState<ConnectionStatus>(dataSource.getConnectionStatus());
   const [roundTripMs, setRoundTripMs] = useState<number>(dataSource.getRoundTripMs());
+  const [slaBenchmarkMin, setSlaBenchmarkMin] = useState<number | null>(null);
+  const [slaBenchmarkError, setSlaBenchmarkError] = useState<string | null>(null);
 
   // Solver Configuration
   const [solverMode, setSolverMode] = useState<'Weighted' | 'Plain'>('Weighted');
@@ -86,6 +88,15 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
       setRoundTripMs(rtt);
     });
     return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    let isCurrent = true;
+    getSlaBenchmarkMinutes().then(
+      (minutes) => { if (isCurrent) setSlaBenchmarkMin(minutes); },
+      (reason: unknown) => { if (isCurrent) setSlaBenchmarkError(reason instanceof Error ? reason.message : 'SLA benchmark unavailable'); }
+    );
+    return () => { isCurrent = false; };
   }, []);
 
   // Load and Subscribe to Data
@@ -208,7 +219,7 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
         worstResponseMin: 0,
         servedCount: 0,
         totalCount: pendingEmergencies.length,
-        slaHitsCount: 0,
+        slaHitsCount: slaBenchmarkMin === null ? null : 0,
       };
     }
 
@@ -216,7 +227,9 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
     const totalRaw = currentAssignments.reduce((s, a) => s + a.etaMin, 0);
     const avgResponse = +(totalRaw / currentAssignments.length).toFixed(1);
     const worstResponse = +Math.max(...currentAssignments.map((a) => a.etaMin)).toFixed(1);
-    const slaHits = currentAssignments.filter((a) => a.etaMin <= 10.0).length;
+    const slaHits = slaBenchmarkMin === null
+      ? null
+      : currentAssignments.filter((a) => a.etaMin <= slaBenchmarkMin).length;
 
     return {
       totalWeightedMin: +totalWeighted.toFixed(1),
@@ -227,7 +240,7 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
       totalCount: pendingEmergencies.length,
       slaHitsCount: slaHits,
     };
-  }, [currentAssignments, pendingEmergencies.length]);
+  }, [currentAssignments, pendingEmergencies.length, slaBenchmarkMin]);
 
   // Delta calculation when manually adjusted vs optimal
   const adjustmentDelta = useMemo(() => {
@@ -504,7 +517,7 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
           <div className="flex items-baseline gap-1.5">
             <span
               className={`font-serif-display text-3xl sm:text-4xl tabular-nums ${
-                activeMetrics.worstResponseMin > 10.0 ? 'text-[var(--critical)]' : 'text-[var(--ink)]'
+                slaBenchmarkMin !== null && activeMetrics.worstResponseMin > slaBenchmarkMin ? 'text-[var(--critical)]' : 'text-[var(--ink)]'
               }`}
             >
               <AnimatedCounter value={activeMetrics.worstResponseMin} decimals={1} />
@@ -531,12 +544,12 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
         <Panel title="SLA Compliance" badge="DERIVED">
           <div className="flex items-baseline gap-1.5">
             <span className="font-serif-display text-3xl sm:text-4xl text-[var(--unit-available)] tabular-nums">
-              <AnimatedCounter value={activeMetrics.slaHitsCount} />/{activeMetrics.servedCount}
+              {activeMetrics.slaHitsCount === null ? '—' : <AnimatedCounter value={activeMetrics.slaHitsCount} />}/{activeMetrics.servedCount}
             </span>
             <span className="font-mono-numbers text-xs text-[var(--ink-muted)]">in SLA</span>
           </div>
           <span className="text-[11px] text-[var(--ink-muted)] block mt-1">
-            Target response &le;10 min
+            {slaBenchmarkMin === null ? slaBenchmarkError ?? 'Loading configured target' : `Target response ≤${slaBenchmarkMin} min`}
           </span>
         </Panel>
       </div>
@@ -682,7 +695,7 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
                             const time = solveResult?.matrix.travelTimes[amb.id]?.[em.id];
                             const isFeasible = solveResult?.matrix.feasibility[amb.id]?.[em.id] ?? true;
                             const isAssigned = assignedPairMap.get(em.id) === amb.id;
-                            const isExceedSla = time !== null && time !== undefined && time > 10.0;
+                            const isExceedSla = slaBenchmarkMin !== null && time !== null && time !== undefined && time > slaBenchmarkMin;
 
                             // Calculate teal intensity ramp (0 to 14 minutes)
                             const intensity = time ? Math.min(1, Math.max(0.1, time / 15)) : 0;

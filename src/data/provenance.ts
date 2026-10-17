@@ -1,0 +1,1 @@
+export const EMS_SAMPLE_LABEL = 'PROVIDED SAMPLE';
