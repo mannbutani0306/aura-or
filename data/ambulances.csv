@@ -1,0 +1,6 @@
+amb_id,zone,type,status
+A1,Zone A,BLS,Available
+A2,Zone B,BLS,Available
+A3,Zone C,ALS,Busy
+A4,Zone D,ALS,Available
+A5,Zone E,BLS,Available

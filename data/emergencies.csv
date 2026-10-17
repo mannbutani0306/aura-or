@@ -1,0 +1,6 @@
+em_id,zone,priority,weight,status
+E1,Zone B,Critical,5,Pending
+E2,Zone F,High,3,Pending
+E3,Zone A,Medium,2,Pending
+E4,Zone D,Critical,5,Pending
+E5,Zone C,High,3,Pending
