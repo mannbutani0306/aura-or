@@ -10,6 +10,8 @@ import {
 import { dataSource } from '../../data';
 import { MaduraiMap } from './MaduraiMap';
 import { LiveTimelineStrip } from './LiveTimelineStrip';
+import { CallsSlip } from './CallsSlip';
+import { UnitsSlip } from './UnitsSlip';
 import {
   TriageTag,
   Button,
@@ -245,9 +247,9 @@ export function CommandView({
   };
 
   return (
-    <div className="relative w-full h-[calc(100vh-4.5rem)] flex flex-col overflow-hidden rounded-[20px] border-2 border-[var(--line)] shadow-[6px_6px_0_var(--shadow-ink)]">
-      {/* 1. Full-Bleed Leaflet Map Layer */}
-      <div className={`absolute inset-0 z-0 transition-all duration-300 ${connStatus === 'offline' ? 'grayscale opacity-60' : ''}`}>
+    <div className="relative h-[calc(100vh-4.5rem)] w-full overflow-hidden rounded-[28px] border-2 border-[var(--line)] bg-[var(--surface)] shadow-[8px_8px_0_var(--shadow-ink)]">
+      {/* 1. Framed Leaflet Map Card */}
+      <div className={`absolute inset-0 z-0 overflow-hidden rounded-[28px] border-2 border-[var(--line)] transition-all duration-300 ${connStatus === 'offline' ? 'grayscale opacity-60' : ''}`}>
         <MaduraiMap
           zones={zones}
           roads={roads}
@@ -359,212 +361,39 @@ export function CommandView({
       {/* 4. Left Panel "Calls" (≥1280 persistent, 768-1279 collapsible overlay, <768 in bottom sheet) */}
       <div
         className={`absolute left-3 sm:left-4 bottom-20 top-20 sm:top-24 z-25 pointer-events-auto flex-col transition-all duration-240 ${
-          callsPanelTab === 'table' ? 'w-[360px] sm:w-[480px] lg:w-[540px]' : 'w-[310px] sm:w-[330px]'
+          callsPanelTab === 'table' ? 'w-[360px] sm:w-[480px] lg:w-[540px]' : 'w-[320px] sm:w-[360px]'
         } ${
           overlayPanel === 'calls' ? 'flex' : 'hidden xl:flex'
         }`}
       >
-        <div className="flex-1 bg-[var(--surface-raised)] border-2 border-[var(--line)] rounded-[20px] shadow-[6px_6px_0_var(--shadow-ink)] flex flex-col overflow-hidden">
-          {/* Panel Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b-2 border-[var(--line)] bg-[var(--surface)]/70 shrink-0 gap-2">
-            <div className="flex items-center gap-2">
-              <h2 className="text-xs font-mono-numbers font-semibold uppercase tracking-wider text-[var(--ink)]">
-                Calls
-              </h2>
-              <span className="font-mono-numbers text-[11px] text-[var(--ink-muted)]">
-                ({pendingCalls.length})
-              </span>
-            </div>
-
-            {/* Sub-tab: Queue | Table */}
-            <div className="inline-flex items-center p-0.5 rounded-[6px] bg-[var(--surface-raised)] border border-[var(--line)]">
-              <button
-                onClick={() => setCallsPanelTab('queue')}
-                className={`px-2 py-0.5 text-[10px] font-mono-numbers uppercase tracking-wider rounded-[4px] transition-colors cursor-pointer ${
-                  callsPanelTab === 'queue'
-                    ? 'bg-[var(--ink)] text-[var(--bg-app)] font-medium shadow-xs'
-                    : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
-                }`}
-              >
-                Queue
-              </button>
-              <button
-                onClick={() => setCallsPanelTab('table')}
-                className={`px-2 py-0.5 text-[10px] font-mono-numbers uppercase tracking-wider rounded-[4px] transition-colors cursor-pointer ${
-                  callsPanelTab === 'table'
-                    ? 'bg-[var(--ink)] text-[var(--bg-app)] font-medium shadow-xs'
-                    : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
-                }`}
-              >
-                Table
-              </button>
-            </div>
-
-            <div className="flex items-center gap-1">
-              <Tooltip content="Register incoming call" shortcut="+">
-                <button
-                  onClick={() => setIsAddModalOpen(true)}
-                  aria-label="Add call"
-                  className="w-6 h-6 flex items-center justify-center rounded-[4px] bg-[var(--surface-raised)] border border-[var(--line)] hover:border-[var(--line)] text-sm font-semibold text-[var(--ink)] cursor-pointer shrink-0 focus-ring active:scale-95"
-                >
-                  +
-                </button>
-              </Tooltip>
-
-              {/* Close button on mid-screen overlay (768-1279) */}
-              <button
-                onClick={() => setOverlayPanel(null)}
-                aria-label="Close calls overlay"
-                className="xl:hidden w-6 h-6 flex items-center justify-center rounded-[4px] bg-[var(--surface-raised)] border border-[var(--line)] hover:border-[var(--line)] text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer focus-ring active:scale-95"
-              >
-                <IconClose size={12} />
-              </button>
-            </div>
-          </div>
-
-          {/* Panel Body: Either Queue or Table */}
-          {callsPanelTab === 'queue' ? (
-            <div className="flex-1 overflow-y-auto divide-y divide-[var(--line)] p-1">
-              {pendingCalls.length === 0 ? (
-                <div className="py-12 text-center text-xs font-mono-numbers text-[var(--ink-muted)]">
-                  No active pending calls
-                </div>
-              ) : (
-                pendingCalls.map((call) => {
-                  const zone = zoneMap.get(call.zoneId);
-                  const isSelected = selectedCall?.id === call.id;
-
-                  return (
-                    <div
-                      key={call.id}
-                      onClick={() => handleSelectCall(call)}
-                      className={`p-2.5 rounded-[6px] transition-colors cursor-pointer flex items-center justify-between gap-2 ${
-                        isSelected
-                          ? 'bg-[var(--surface-raised)] ring-1 ring-[var(--line)]'
-                          : 'hover:bg-[var(--surface-raised)]/70'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <TriageTag priority={call.priority} weight={call.weight} size="sm" />
-                        <div className="flex flex-col min-w-0">
-                          <span className="font-mono-numbers text-xs font-semibold text-[var(--ink)] truncate">
-                            {call.id}
-                          </span>
-                          <span className="font-mono-numbers text-[10px] text-[var(--ink-muted)] truncate">
-                            {zone ? `${zone.id} · ${zone.name}` : `Zone ${call.zoneId}`}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col items-end shrink-0">
-                        <span className="font-mono-numbers text-[11px] text-[var(--ink)] font-medium tabular-nums">
-                          {formatWaitTime(call.requestedAt)}
-                        </span>
-                        <span className="font-mono-numbers text-[9px] text-[var(--ink-subtle)] uppercase">
-                          waiting
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          ) : (
-            <div className="flex-1 overflow-y-auto p-2">
-              <EmergencyTableView
-                emergencies={emergencies}
-                zones={zones}
-                onAddToast={addToast}
-                compact
-                onSelectCall={handleSelectCall}
-              />
-            </div>
-          )}
-        </div>
+        <CallsSlip
+          calls={pendingCalls}
+          selectedCallId={selectedCall?.id}
+          onSelectCall={handleSelectCall}
+          onAddCall={() => setIsAddModalOpen(true)}
+          formatWaitTime={formatWaitTime}
+          zoneName={(zoneId) => {
+            const zone = zoneMap.get(zoneId);
+            return zone ? `${zone.id} · ${zone.name}` : `Zone ${zoneId}`;
+          }}
+        />
       </div>
 
       {/* 5. Right Floating Panel "Units" (≥1280 persistent, 768-1279 collapsible overlay, <768 in bottom sheet) */}
       <div
-        className={`absolute right-3 sm:right-4 bottom-20 top-20 sm:top-24 w-[270px] sm:w-[290px] z-25 pointer-events-auto flex-col transition-all duration-240 ${
+        className={`absolute right-3 sm:right-4 bottom-20 top-20 sm:top-24 w-[290px] z-25 pointer-events-auto flex-col transition-all duration-240 ${
           overlayPanel === 'units' ? 'flex' : 'hidden xl:flex'
         }`}
       >
-        <div className="flex-1 bg-[var(--surface-raised)] border-2 border-[var(--line)] rounded-[20px] shadow-[6px_6px_0_var(--shadow-ink)] flex flex-col overflow-hidden">
-          {/* Panel Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b-2 border-[var(--line)] bg-[var(--surface)]/70 shrink-0">
-            <div className="flex items-center gap-2">
-              <h2 className="text-xs font-mono-numbers font-semibold uppercase tracking-wider text-[var(--ink)]">
-                Units
-              </h2>
-              <span className="font-mono-numbers text-[11px] text-[var(--ink-muted)]">
-                ({ambulances.length})
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <ProvenanceChip kind="REAL SAMPLE" />
-              {/* Close button on mid-screen overlay (768-1279) */}
-              <button
-                onClick={() => setOverlayPanel(null)}
-                aria-label="Close units overlay"
-                className="xl:hidden w-6 h-6 flex items-center justify-center rounded-[4px] bg-[var(--surface-raised)] border border-[var(--line)] hover:border-[var(--line)] text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer focus-ring active:scale-95"
-              >
-                <IconClose size={12} />
-              </button>
-            </div>
-          </div>
-
-          {/* Units Scroll List */}
-          <div className="flex-1 overflow-y-auto divide-y divide-[var(--line)] p-1">
-            {ambulances.map((unit) => {
-              const zone = zoneMap.get(unit.zoneId);
-              const isSelected = selectedUnit?.id === unit.id;
-              const isAvailable = unit.status === 'Available';
-
-              return (
-                <div
-                  key={unit.id}
-                  onClick={() => handleSelectUnit(unit)}
-                  className={`p-2.5 rounded-[6px] transition-colors cursor-pointer flex items-center justify-between gap-2 ${
-                    isSelected
-                      ? 'bg-[var(--surface-raised)] ring-1 ring-[var(--line)]'
-                      : 'hover:bg-[var(--surface-raised)]/70'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span
-                      className="w-2 h-2 rounded-full shrink-0"
-                      style={{
-                        backgroundColor: isAvailable ? 'var(--unit-available)' : 'var(--unit-busy)',
-                      }}
-                    />
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-mono-numbers text-xs font-semibold text-[var(--ink)]">
-                          {unit.id}
-                        </span>
-                        <span className="font-mono-numbers text-[10px] px-1 py-0.2 rounded-[2px] bg-[var(--surface-raised)] border border-[var(--line)] text-[var(--ink-muted)]">
-                          {unit.type}
-                        </span>
-                      </div>
-                      <span className="font-mono-numbers text-[10px] text-[var(--ink-muted)]">
-                        {zone ? `${zone.id} · ${zone.name}` : `Zone ${unit.zoneId}`}
-                      </span>
-                    </div>
-                  </div>
-
-                  <span
-                    className="font-mono-numbers text-[10px] uppercase tracking-wider font-medium"
-                    style={{
-                      color: isAvailable ? 'var(--unit-available)' : 'var(--unit-busy)',
-                    }}
-                  >
-                    {unit.status}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <UnitsSlip
+          units={ambulances}
+          selectedUnitId={selectedUnit?.id}
+          onSelectUnit={handleSelectUnit}
+          zoneName={(zoneId) => {
+            const zone = zoneMap.get(zoneId);
+            return zone ? `${zone.id} · ${zone.name}` : `Zone ${zoneId}`;
+          }}
+        />
       </div>
 
       {/* 6. Mobile Draggable Bottom Sheet (390px - 767px) */}
