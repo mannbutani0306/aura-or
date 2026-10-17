@@ -52,7 +52,7 @@ export function FirstLoadIntro({ onComplete }: FirstLoadIntroProps) {
               y1="30"
               x2="240"
               y2="30"
-              stroke="var(--hairline)"
+              stroke="var(--line)"
               strokeWidth="1"
               strokeDasharray="3 3"
             />

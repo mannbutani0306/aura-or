@@ -324,7 +324,7 @@ export function FleetView({ onNavigate }: FleetViewProps) {
           {/* Main Fleet Table Column */}
           <div className="flex-1 flex flex-col gap-4 w-full">
             {/* Filter Chips Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-[var(--hairline)]">
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-[var(--line)]">
               <div className="flex flex-wrap items-center gap-1.5">
                 {(['all', 'Available', 'Busy', 'Offline', 'ALS', 'BLS'] as const).map((opt) => (
                   <button
@@ -332,8 +332,8 @@ export function FleetView({ onNavigate }: FleetViewProps) {
                     onClick={() => setStatusFilter(opt)}
                     className={`px-2.5 py-1 text-xs font-mono-numbers uppercase tracking-wider rounded-[6px] border transition-colors cursor-pointer ${
                       statusFilter === opt
-                        ? 'bg-[var(--surface-raised)] border-[var(--hairline-hover)] text-[var(--ink)] font-semibold shadow-xs'
-                        : 'bg-[var(--surface)] border-[var(--hairline)] text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                        ? 'bg-[var(--surface-raised)] border-[var(--line)] text-[var(--ink)] font-semibold shadow-xs'
+                        : 'bg-[var(--surface)] border-[var(--line)] text-[var(--ink-muted)] hover:text-[var(--ink)]'
                     }`}
                   >
                     {opt}
@@ -343,7 +343,7 @@ export function FleetView({ onNavigate }: FleetViewProps) {
                 {selectedZoneFilter && (
                   <button
                     onClick={() => setSelectedZoneFilter(null)}
-                    className="px-2 py-1 text-xs font-mono-numbers rounded-[6px] bg-[var(--surface-raised)] border border-[var(--hairline-active)] text-[var(--ink)] flex items-center gap-1 cursor-pointer"
+                    className="px-2 py-1 text-xs font-mono-numbers rounded-[6px] bg-[var(--surface-raised)] border border-[var(--line)] text-[var(--ink)] flex items-center gap-1 cursor-pointer"
                   >
                     <span>Zone {selectedZoneFilter}</span>
                     <IconClose size={12} />
@@ -367,7 +367,7 @@ export function FleetView({ onNavigate }: FleetViewProps) {
               <div className="overflow-x-auto rounded-[20px] border-2 border-[var(--line)] bg-[var(--surface)] shadow-[6px_6px_0_var(--shadow-ink)]">
                 <table className="w-full text-left text-xs font-ui border-collapse">
                   <thead>
-                    <tr className="border-b border-[var(--hairline)] bg-[var(--surface-raised)]/60 text-[11px] font-mono-numbers text-[var(--ink-muted)] uppercase tracking-wider select-none">
+                    <tr className="border-b border-[var(--line)] bg-[var(--surface-raised)]/60 text-[11px] font-mono-numbers text-[var(--ink-muted)] uppercase tracking-wider select-none">
                       <th
                         onClick={() => toggleSort('id')}
                         className="py-2.5 px-3.5 font-medium cursor-pointer hover:text-[var(--ink)]"
@@ -401,7 +401,7 @@ export function FleetView({ onNavigate }: FleetViewProps) {
                       <th className="py-2.5 px-3.5 font-medium text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[var(--hairline)]">
+                  <tbody className="divide-y divide-[var(--line)]">
                     {filteredAmbulances.map((amb, idx) => {
                       const zone = zoneMap.get(amb.zoneId);
                       const isFocused = idx === focusedIndex;
@@ -413,7 +413,7 @@ export function FleetView({ onNavigate }: FleetViewProps) {
                           onMouseEnter={() => setFocusedIndex(idx)}
                           className={`transition-colors cursor-pointer ${
                             isFocused
-                              ? 'bg-[var(--surface-raised)] ring-1 ring-inset ring-[var(--hairline-hover)]'
+                              ? 'bg-[var(--surface-raised)] ring-1 ring-inset ring-[var(--line)]'
                               : 'hover:bg-[var(--surface-raised)]/60'
                           }`}
                         >
@@ -446,7 +446,7 @@ export function FleetView({ onNavigate }: FleetViewProps) {
 
                           {/* Status: Inline Segmented Control */}
                           <td className="py-2 px-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                            <div className="inline-flex items-center p-0.5 rounded-[6px] bg-[var(--surface-raised)] border border-[var(--hairline)]">
+                            <div className="inline-flex items-center p-0.5 rounded-[6px] bg-[var(--surface-raised)] border border-[var(--line)]">
                               {(['Available', 'Busy', 'Offline'] as const).map((st) => (
                                 <button
                                   key={st}
@@ -502,7 +502,7 @@ export function FleetView({ onNavigate }: FleetViewProps) {
 
           {/* Right Slim Zone Selector Sidebar with Stacked Dots */}
           <div className="w-full lg:w-64 bg-[var(--surface-raised)] border-2 border-[var(--line)] rounded-[20px] shadow-[6px_6px_0_var(--shadow-ink)] p-4 flex flex-col gap-3 shrink-0">
-            <div className="flex items-center justify-between pb-2 border-b border-[var(--hairline)]">
+            <div className="flex items-center justify-between pb-2 border-b border-[var(--line)]">
               <span className="text-xs font-mono-numbers font-semibold uppercase tracking-wider text-[var(--ink)]">
                 Sector Units
               </span>
@@ -525,8 +525,8 @@ export function FleetView({ onNavigate }: FleetViewProps) {
                     }
                     className={`p-2 rounded-[6px] border transition-colors cursor-pointer flex items-center justify-between ${
                       isSelected
-                        ? 'bg-[var(--surface-raised)] border-[var(--hairline-hover)] ring-1 ring-[var(--hairline-hover)]'
-                        : 'bg-[var(--surface-raised)]/40 border-[var(--hairline)] hover:border-[var(--hairline-hover)]'
+                        ? 'bg-[var(--surface-raised)] border-[var(--line)] ring-1 ring-[var(--line)]'
+                        : 'bg-[var(--surface-raised)]/40 border-[var(--line)] hover:border-[var(--line)]'
                     }`}
                   >
                     <div className="flex flex-col">
@@ -611,7 +611,7 @@ export function FleetView({ onNavigate }: FleetViewProps) {
               value={newUnitId}
               onChange={(e) => setNewUnitId(e.target.value.toUpperCase())}
               placeholder="e.g. A6"
-              className="px-3 py-2 text-xs font-mono-numbers rounded-[6px] bg-[var(--surface)] border border-[var(--hairline)] text-[var(--ink)] outline-none focus:border-[var(--ink)]"
+              className="px-3 py-2 text-xs font-mono-numbers rounded-[6px] bg-[var(--surface)] border border-[var(--line)] text-[var(--ink)] outline-none focus:border-[var(--ink)]"
             />
           </div>
 
@@ -628,7 +628,7 @@ export function FleetView({ onNavigate }: FleetViewProps) {
                   className={`p-2.5 rounded-[6px] border flex items-center justify-center gap-2 font-mono-numbers text-xs uppercase cursor-pointer ${
                     newUnitType === t
                       ? 'bg-[var(--surface-raised)] border-[var(--ink)] text-[var(--ink)] font-semibold'
-                      : 'bg-[var(--surface)] border-[var(--hairline)] text-[var(--ink-muted)]'
+                      : 'bg-[var(--surface)] border-[var(--line)] text-[var(--ink-muted)]'
                   }`}
                 >
                   {t === 'ALS' ? <IconAls size={14} /> : <IconBls size={14} />}
@@ -645,7 +645,7 @@ export function FleetView({ onNavigate }: FleetViewProps) {
             <select
               value={newUnitZone}
               onChange={(e) => setNewUnitZone(e.target.value)}
-              className="px-3 py-2 text-xs font-mono-numbers rounded-[6px] bg-[var(--surface)] border border-[var(--hairline)] text-[var(--ink)] outline-none focus:border-[var(--ink)]"
+              className="px-3 py-2 text-xs font-mono-numbers rounded-[6px] bg-[var(--surface)] border border-[var(--line)] text-[var(--ink)] outline-none focus:border-[var(--ink)]"
             >
               {zones.map((z) => (
                 <option key={z.id} value={z.id}>
@@ -668,7 +668,7 @@ export function FleetView({ onNavigate }: FleetViewProps) {
                   className={`py-1.5 px-2 rounded-[6px] border text-center font-mono-numbers text-[10px] uppercase cursor-pointer ${
                     newUnitStatus === st
                       ? 'bg-[var(--surface-raised)] border-[var(--ink)] text-[var(--ink)] font-semibold'
-                      : 'bg-[var(--surface)] border-[var(--hairline)] text-[var(--ink-muted)]'
+                      : 'bg-[var(--surface)] border-[var(--line)] text-[var(--ink-muted)]'
                   }`}
                 >
                   {st}
@@ -677,7 +677,7 @@ export function FleetView({ onNavigate }: FleetViewProps) {
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--hairline)]">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--line)]">
             <Button
               type="button"
               variant="ghost"
@@ -708,7 +708,7 @@ export function FleetView({ onNavigate }: FleetViewProps) {
           <p className="text-xs text-[var(--ink-muted)] leading-relaxed font-ui">
             Remove ambulance <strong className="text-[var(--ink)] font-mono-numbers">{unitToDelete?.id}</strong> from active fleet? An undo window will remain open for 6 seconds.
           </p>
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--hairline)]">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--line)]">
             <Button variant="ghost" size="sm" onClick={() => setUnitToDelete(null)}>
               Dismiss
             </Button>
@@ -737,7 +737,7 @@ export function FleetView({ onNavigate }: FleetViewProps) {
               <ProvenanceChip kind="REAL SAMPLE" />
             </div>
 
-            <div className="p-3 bg-[var(--surface)] border border-[var(--hairline)] rounded-[8px] flex flex-col gap-2 font-mono-numbers text-xs">
+            <div className="p-3 bg-[var(--surface)] border border-[var(--line)] rounded-[8px] flex flex-col gap-2 font-mono-numbers text-xs">
               <div className="flex justify-between">
                 <span className="text-[var(--ink-muted)]">Base Station</span>
                 <span className="text-[var(--ink)] font-semibold">
@@ -763,7 +763,7 @@ export function FleetView({ onNavigate }: FleetViewProps) {
             </div>
 
             {/* Reassign Zone Form */}
-            <div className="flex flex-col gap-2 pt-2 border-t border-[var(--hairline)]">
+            <div className="flex flex-col gap-2 pt-2 border-t border-[var(--line)]">
               <label className="text-[11px] font-mono-numbers uppercase text-[var(--ink-muted)]">
                 Reassign Base Station
               </label>
@@ -782,7 +782,7 @@ export function FleetView({ onNavigate }: FleetViewProps) {
                     className={`p-1.5 rounded-[4px] border text-center font-mono-numbers text-xs cursor-pointer ${
                       inspectedUnit.zoneId === z.id
                         ? 'bg-[var(--surface-raised)] border-[var(--ink)] text-[var(--ink)] font-semibold'
-                        : 'bg-[var(--surface)] border-[var(--hairline)] text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                        : 'bg-[var(--surface)] border-[var(--line)] text-[var(--ink-muted)] hover:text-[var(--ink)]'
                     }`}
                   >
                     {z.id} · {z.name}
@@ -791,7 +791,7 @@ export function FleetView({ onNavigate }: FleetViewProps) {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 mt-auto pt-4 border-t border-[var(--hairline)]">
+            <div className="flex items-center gap-2 mt-auto pt-4 border-t border-[var(--line)]">
               <Button
                 variant="danger"
                 size="sm"

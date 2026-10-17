@@ -544,7 +544,7 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
       {/* Baseline Comparison Split Panel (When "Compare" is Active) */}
       {isCompareOpen && solveResult && (
         <div className="p-5 rounded-[20px] bg-[var(--surface-raised)] border-2 border-[var(--line)] shadow-[6px_6px_0_var(--shadow-ink)] flex flex-col gap-4 animate-in fade-in duration-150">
-          <div className="flex items-center justify-between pb-2 border-b border-[var(--hairline)]">
+          <div className="flex items-center justify-between pb-2 border-b border-[var(--line)]">
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono-numbers font-semibold uppercase tracking-wider text-[var(--ink)]">
                 Algorithmic Benchmark: Manual (FCFS) vs Optimized
@@ -569,7 +569,7 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono-numbers">
-            <div className="p-3 rounded-[6px] bg-[var(--surface)] border border-[var(--hairline)] flex flex-col gap-2">
+            <div className="p-3 rounded-[6px] bg-[var(--surface)] border border-[var(--line)] flex flex-col gap-2">
               <span className="text-[11px] font-semibold text-[var(--ink-muted)] uppercase">
                 Manual / First-Come-First-Served (FCFS)
               </span>
@@ -629,10 +629,10 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
               </div>
 
               {/* Heatmap Grid Table */}
-              <div className="overflow-x-auto rounded-[8px] border border-[var(--hairline)] bg-[var(--surface-raised)]">
+              <div className="overflow-x-auto rounded-[8px] border border-[var(--line)] bg-[var(--surface-raised)]">
                 <table className="w-full text-center text-xs font-mono-numbers border-collapse">
                   <thead>
-                    <tr className="border-b border-[var(--hairline)] bg-[var(--surface)]/80">
+                    <tr className="border-b border-[var(--line)] bg-[var(--surface)]/80">
                       <th className="py-2 px-2 text-left text-[10px] text-[var(--ink-muted)] font-medium">
                         Unit \ Call
                       </th>
@@ -651,7 +651,7 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[var(--hairline)]">
+                  <tbody className="divide-y divide-[var(--line)]">
                     {availableAmbulances.map((amb, rIdx) => {
                       const isScanningThisRow = scanStep === rIdx;
                       const isRowHovered = hoveredCell?.ambId === amb.id;
@@ -668,7 +668,7 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
                           }`}
                         >
                           {/* Unit Row Header */}
-                          <td className="py-2.5 px-2 text-left whitespace-nowrap bg-[var(--surface)]/60 border-r border-[var(--hairline)]">
+                          <td className="py-2.5 px-2 text-left whitespace-nowrap bg-[var(--surface)]/60 border-r border-[var(--line)]">
                             <div className="flex items-center gap-1.5">
                               <UnitMarker status={amb.status} size="sm" />
                               <span className="font-semibold text-[var(--ink)]">{amb.id}</span>
@@ -706,7 +706,7 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
                                   isAssigned
                                     ? 'ring-2 ring-inset ring-[var(--ink)] font-bold'
                                     : ''
-                                } ${isCellHovered ? 'ring-1 ring-[var(--hairline-hover)]' : ''}`}
+                                } ${isCellHovered ? 'ring-1 ring-[var(--line)]' : ''}`}
                                 style={{ backgroundColor: cellBg }}
                                 title={`${amb.id} (${amb.zoneId}) → ${em.id} (${em.zoneId}): ${
                                   isFeasible && time !== null ? `${time}m (${cost} weighted)` : 'Infeasible'
@@ -770,7 +770,7 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
               </div>
 
               {/* Bipartite Graph Area */}
-              <div className="relative w-full min-h-[340px] flex items-stretch justify-between p-4 rounded-[8px] bg-[var(--surface-raised)] border border-[var(--hairline)] overflow-hidden">
+              <div className="relative w-full min-h-[340px] flex items-stretch justify-between p-4 rounded-[8px] bg-[var(--surface-raised)] border border-[var(--line)] overflow-hidden">
                 {/* Left Stack: Units */}
                 <div className="flex flex-col justify-around gap-4 z-10 w-28 shrink-0">
                   {availableAmbulances.map((amb) => {
@@ -783,7 +783,7 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
                         className={`p-2 rounded-[6px] border transition-all flex items-center justify-between ${
                           isMatched
                             ? 'bg-[var(--surface)] border-[var(--ink)] shadow-xs'
-                            : 'bg-[var(--surface)]/40 border-[var(--hairline)] opacity-60'
+                            : 'bg-[var(--surface)]/40 border-[var(--line)] opacity-60'
                         }`}
                       >
                         <div className="flex items-center gap-1.5">
@@ -868,8 +868,8 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
                         id={`em-node-${em.id}`}
                         className={`p-2 rounded-[6px] border transition-all flex items-center justify-between gap-1.5 ${
                           isMatched
-                            ? 'bg-[var(--surface)] border-[var(--hairline-hover)] shadow-xs'
-                            : 'bg-[var(--surface)]/40 border-dashed border-[var(--hairline)] opacity-80'
+                            ? 'bg-[var(--surface)] border-[var(--line)] shadow-xs'
+                            : 'bg-[var(--surface)]/40 border-dashed border-[var(--line)] opacity-80'
                         }`}
                       >
                         <div className="flex items-center gap-1.5">
@@ -896,7 +896,7 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
 
               {/* Unserved Calls Queue Slot with dashed outline & one-word reason chip */}
               {solveResult && solveResult.unserved.length > 0 && (
-                <div className="p-3 rounded-[8px] border border-dashed border-[var(--hairline-hover)] bg-[var(--surface)] flex flex-col gap-2">
+                <div className="p-3 rounded-[8px] border border-dashed border-[var(--line)] bg-[var(--surface)] flex flex-col gap-2">
                   <span className="text-[10px] font-mono-numbers uppercase text-[var(--ink-muted)]">
                     Unserved Queue ({solveResult.unserved.length})
                   </span>
@@ -906,7 +906,7 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
                       return (
                         <div
                           key={u.emergencyId}
-                          className="px-2.5 py-1 rounded-[4px] bg-[var(--surface-raised)] border border-[var(--hairline)] flex items-center gap-2 text-xs font-mono-numbers"
+                          className="px-2.5 py-1 rounded-[4px] bg-[var(--surface-raised)] border border-[var(--line)] flex items-center gap-2 text-xs font-mono-numbers"
                         >
                           {em && <TriageTag priority={em.priority} size="sm" />}
                           <span className="font-semibold text-[var(--ink)]">{u.emergencyId}</span>
@@ -935,7 +935,7 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
             Deploy {currentAssignments.length} optimal ambulance assignments across the Madurai sector road network? Units will transition to Busy (EnRoute).
           </p>
 
-          <div className="p-3 bg-[var(--surface)] border border-[var(--hairline)] rounded-[8px] flex flex-col gap-1.5 font-mono-numbers text-xs">
+          <div className="p-3 bg-[var(--surface)] border border-[var(--line)] rounded-[8px] flex flex-col gap-1.5 font-mono-numbers text-xs">
             {currentAssignments.map((a) => (
               <div key={a.emergencyId} className="flex items-center justify-between">
                 <span>
@@ -946,7 +946,7 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
             ))}
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--hairline)]">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--line)]">
             <Button
               variant="ghost"
               size="sm"

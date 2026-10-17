@@ -293,7 +293,7 @@ export function CommandView({
             </span>
           </div>
 
-          <div className="w-[1px] h-6 sm:h-7 bg-[var(--hairline)] shrink-0" />
+          <div className="w-[1px] h-6 sm:h-7 bg-[var(--line)] shrink-0" />
 
           <div className="flex flex-col shrink-0">
             <span className="font-serif-display text-xl sm:text-3xl text-[var(--unit-busy)] leading-none tabular-nums">
@@ -304,7 +304,7 @@ export function CommandView({
             </span>
           </div>
 
-          <div className="w-[1px] h-6 sm:h-7 bg-[var(--hairline)] shrink-0" />
+          <div className="w-[1px] h-6 sm:h-7 bg-[var(--line)] shrink-0" />
 
           <div className="flex flex-col shrink-0">
             <span className="font-serif-display text-xl sm:text-3xl text-[var(--critical)] leading-none tabular-nums">
@@ -315,7 +315,7 @@ export function CommandView({
             </span>
           </div>
 
-          <div className="w-[1px] h-6 sm:h-7 bg-[var(--hairline)] shrink-0" />
+          <div className="w-[1px] h-6 sm:h-7 bg-[var(--line)] shrink-0" />
 
           <div className="flex flex-col shrink-0">
             <span className="font-serif-display text-xl sm:text-3xl text-[var(--ink)] leading-none tabular-nums">
@@ -336,7 +336,7 @@ export function CommandView({
           className={`px-3 py-1.5 rounded-[8px] text-xs font-mono-numbers border backdrop-blur-md transition-all shadow-xs flex items-center gap-1.5 cursor-pointer focus-ring active:scale-95 ${
             overlayPanel === 'calls'
               ? 'bg-[var(--ink)] text-[var(--bg-app)] border-[var(--ink)] font-medium'
-              : 'bg-[var(--surface)]/90 text-[var(--ink)] border-[var(--hairline)] hover:border-[var(--hairline-hover)]'
+              : 'bg-[var(--surface)]/90 text-[var(--ink)] border-[var(--line)] hover:border-[var(--line)]'
           }`}
         >
           <IconCall size={13} />
@@ -348,7 +348,7 @@ export function CommandView({
           className={`px-3 py-1.5 rounded-[8px] text-xs font-mono-numbers border backdrop-blur-md transition-all shadow-xs flex items-center gap-1.5 cursor-pointer focus-ring active:scale-95 ${
             overlayPanel === 'units'
               ? 'bg-[var(--ink)] text-[var(--bg-app)] border-[var(--ink)] font-medium'
-              : 'bg-[var(--surface)]/90 text-[var(--ink)] border-[var(--hairline)] hover:border-[var(--hairline-hover)]'
+              : 'bg-[var(--surface)]/90 text-[var(--ink)] border-[var(--line)] hover:border-[var(--line)]'
           }`}
         >
           <IconUnit size={13} />
@@ -377,7 +377,7 @@ export function CommandView({
             </div>
 
             {/* Sub-tab: Queue | Table */}
-            <div className="inline-flex items-center p-0.5 rounded-[6px] bg-[var(--surface-raised)] border border-[var(--hairline)]">
+            <div className="inline-flex items-center p-0.5 rounded-[6px] bg-[var(--surface-raised)] border border-[var(--line)]">
               <button
                 onClick={() => setCallsPanelTab('queue')}
                 className={`px-2 py-0.5 text-[10px] font-mono-numbers uppercase tracking-wider rounded-[4px] transition-colors cursor-pointer ${
@@ -405,7 +405,7 @@ export function CommandView({
                 <button
                   onClick={() => setIsAddModalOpen(true)}
                   aria-label="Add call"
-                  className="w-6 h-6 flex items-center justify-center rounded-[4px] bg-[var(--surface-raised)] border border-[var(--hairline)] hover:border-[var(--hairline-hover)] text-sm font-semibold text-[var(--ink)] cursor-pointer shrink-0 focus-ring active:scale-95"
+                  className="w-6 h-6 flex items-center justify-center rounded-[4px] bg-[var(--surface-raised)] border border-[var(--line)] hover:border-[var(--line)] text-sm font-semibold text-[var(--ink)] cursor-pointer shrink-0 focus-ring active:scale-95"
                 >
                   +
                 </button>
@@ -415,7 +415,7 @@ export function CommandView({
               <button
                 onClick={() => setOverlayPanel(null)}
                 aria-label="Close calls overlay"
-                className="xl:hidden w-6 h-6 flex items-center justify-center rounded-[4px] bg-[var(--surface-raised)] border border-[var(--hairline)] hover:border-[var(--hairline-hover)] text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer focus-ring active:scale-95"
+                className="xl:hidden w-6 h-6 flex items-center justify-center rounded-[4px] bg-[var(--surface-raised)] border border-[var(--line)] hover:border-[var(--line)] text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer focus-ring active:scale-95"
               >
                 <IconClose size={12} />
               </button>
@@ -424,7 +424,7 @@ export function CommandView({
 
           {/* Panel Body: Either Queue or Table */}
           {callsPanelTab === 'queue' ? (
-            <div className="flex-1 overflow-y-auto divide-y divide-[var(--hairline)] p-1">
+            <div className="flex-1 overflow-y-auto divide-y divide-[var(--line)] p-1">
               {pendingCalls.length === 0 ? (
                 <div className="py-12 text-center text-xs font-mono-numbers text-[var(--ink-muted)]">
                   No active pending calls
@@ -440,7 +440,7 @@ export function CommandView({
                       onClick={() => handleSelectCall(call)}
                       className={`p-2.5 rounded-[6px] transition-colors cursor-pointer flex items-center justify-between gap-2 ${
                         isSelected
-                          ? 'bg-[var(--surface-raised)] ring-1 ring-[var(--hairline-hover)]'
+                          ? 'bg-[var(--surface-raised)] ring-1 ring-[var(--line)]'
                           : 'hover:bg-[var(--surface-raised)]/70'
                       }`}
                     >
@@ -506,7 +506,7 @@ export function CommandView({
               <button
                 onClick={() => setOverlayPanel(null)}
                 aria-label="Close units overlay"
-                className="xl:hidden w-6 h-6 flex items-center justify-center rounded-[4px] bg-[var(--surface-raised)] border border-[var(--hairline)] hover:border-[var(--hairline-hover)] text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer focus-ring active:scale-95"
+                className="xl:hidden w-6 h-6 flex items-center justify-center rounded-[4px] bg-[var(--surface-raised)] border border-[var(--line)] hover:border-[var(--line)] text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer focus-ring active:scale-95"
               >
                 <IconClose size={12} />
               </button>
@@ -514,7 +514,7 @@ export function CommandView({
           </div>
 
           {/* Units Scroll List */}
-          <div className="flex-1 overflow-y-auto divide-y divide-[var(--hairline)] p-1">
+          <div className="flex-1 overflow-y-auto divide-y divide-[var(--line)] p-1">
             {ambulances.map((unit) => {
               const zone = zoneMap.get(unit.zoneId);
               const isSelected = selectedUnit?.id === unit.id;
@@ -526,7 +526,7 @@ export function CommandView({
                   onClick={() => handleSelectUnit(unit)}
                   className={`p-2.5 rounded-[6px] transition-colors cursor-pointer flex items-center justify-between gap-2 ${
                     isSelected
-                      ? 'bg-[var(--surface-raised)] ring-1 ring-[var(--hairline-hover)]'
+                      ? 'bg-[var(--surface-raised)] ring-1 ring-[var(--line)]'
                       : 'hover:bg-[var(--surface-raised)]/70'
                   }`}
                 >
@@ -542,7 +542,7 @@ export function CommandView({
                         <span className="font-mono-numbers text-xs font-semibold text-[var(--ink)]">
                           {unit.id}
                         </span>
-                        <span className="font-mono-numbers text-[10px] px-1 py-0.2 rounded-[2px] bg-[var(--surface-raised)] border border-[var(--hairline)] text-[var(--ink-muted)]">
+                        <span className="font-mono-numbers text-[10px] px-1 py-0.2 rounded-[2px] bg-[var(--surface-raised)] border border-[var(--line)] text-[var(--ink-muted)]">
                           {unit.type}
                         </span>
                       </div>
@@ -569,7 +569,7 @@ export function CommandView({
 
       {/* 6. Mobile Draggable Bottom Sheet (390px - 767px) */}
       <div
-        className={`md:hidden absolute left-0 right-0 bottom-0 z-30 bg-[var(--surface)]/98 backdrop-blur-md border-t border-[var(--hairline)] shadow-2xl rounded-t-[16px] flex flex-col transition-all duration-240 ease-[cubic-bezier(0.16,1,0.3,1)] pointer-events-auto ${
+        className={`md:hidden absolute left-0 right-0 bottom-0 z-30 bg-[var(--surface)]/98 backdrop-blur-md border-t border-[var(--line)] shadow-2xl rounded-t-[16px] flex flex-col transition-all duration-240 ease-[cubic-bezier(0.16,1,0.3,1)] pointer-events-auto ${
           sheetSnap === 'peek' ? 'h-14' : sheetSnap === 'half' ? 'h-[46%]' : 'h-[78%]'
         }`}
         onTouchStart={(e) => setTouchStartY(e.touches[0].clientY)}
@@ -592,11 +592,11 @@ export function CommandView({
           aria-label="Toggle Bottom Sheet Height"
           className="w-full flex flex-col items-center pt-2 pb-1 cursor-pointer focus-ring"
         >
-          <div className="w-10 h-1 rounded-full bg-[var(--hairline-active)]" />
+          <div className="w-10 h-1 rounded-full bg-[var(--line)]" />
         </button>
 
         {/* Sheet Tabs Bar */}
-        <div className="flex items-center justify-between px-3 pb-2 border-b border-[var(--hairline)] shrink-0">
+        <div className="flex items-center justify-between px-3 pb-2 border-b border-[var(--line)] shrink-0">
           <div className="flex items-center gap-1">
             <button
               onClick={() => {
@@ -630,14 +630,14 @@ export function CommandView({
             <button
               onClick={() => setIsAddModalOpen(true)}
               aria-label="Log Call"
-              className="w-6 h-6 flex items-center justify-center rounded-[4px] bg-[var(--surface-raised)] border border-[var(--hairline)] text-xs font-semibold text-[var(--ink)] focus-ring active:scale-95 cursor-pointer"
+              className="w-6 h-6 flex items-center justify-center rounded-[4px] bg-[var(--surface-raised)] border border-[var(--line)] text-xs font-semibold text-[var(--ink)] focus-ring active:scale-95 cursor-pointer"
             >
               +
             </button>
             <button
               onClick={() => setSheetSnap((prev) => (prev === 'peek' ? 'half' : prev === 'half' ? 'full' : 'peek'))}
               aria-label="Expand or minimize sheet"
-              className="text-[10px] font-mono-numbers px-2 py-0.5 rounded-[4px] bg-[var(--surface-raised)] border border-[var(--hairline)] text-[var(--ink-muted)] focus-ring cursor-pointer"
+              className="text-[10px] font-mono-numbers px-2 py-0.5 rounded-[4px] bg-[var(--surface-raised)] border border-[var(--line)] text-[var(--ink-muted)] focus-ring cursor-pointer"
             >
               {sheetSnap === 'peek' ? '↑ Open' : sheetSnap === 'half' ? '↑ Full' : '↓ Hide'}
             </button>
@@ -646,7 +646,7 @@ export function CommandView({
 
         {/* Sheet Scroll Body */}
         {sheetSnap !== 'peek' && (
-          <div className="flex-1 overflow-y-auto p-2 divide-y divide-[var(--hairline)]">
+          <div className="flex-1 overflow-y-auto p-2 divide-y divide-[var(--line)]">
             {sheetTab === 'calls' ? (
               pendingCalls.length === 0 ? (
                 <div className="py-8 text-center text-xs font-mono-numbers text-[var(--ink-muted)]">
@@ -665,7 +665,7 @@ export function CommandView({
                       }}
                       className={`p-2.5 rounded-[6px] transition-colors cursor-pointer flex items-center justify-between gap-2 ${
                         isSelected
-                          ? 'bg-[var(--surface-raised)] ring-1 ring-[var(--hairline-hover)]'
+                          ? 'bg-[var(--surface-raised)] ring-1 ring-[var(--line)]'
                           : 'hover:bg-[var(--surface-raised)]/70'
                       }`}
                     >
@@ -706,7 +706,7 @@ export function CommandView({
                     }}
                     className={`p-2.5 rounded-[6px] transition-colors cursor-pointer flex items-center justify-between gap-2 ${
                       isSelected
-                        ? 'bg-[var(--surface-raised)] ring-1 ring-[var(--hairline-hover)]'
+                        ? 'bg-[var(--surface-raised)] ring-1 ring-[var(--line)]'
                         : 'hover:bg-[var(--surface-raised)]/70'
                     }`}
                   >
@@ -722,7 +722,7 @@ export function CommandView({
                           <span className="font-mono-numbers text-xs font-semibold text-[var(--ink)]">
                             {unit.id}
                           </span>
-                          <span className="font-mono-numbers text-[10px] px-1 rounded-[2px] bg-[var(--surface-raised)] border border-[var(--hairline)] text-[var(--ink-muted)]">
+                          <span className="font-mono-numbers text-[10px] px-1 rounded-[2px] bg-[var(--surface-raised)] border border-[var(--line)] text-[var(--ink-muted)]">
                             {unit.type}
                           </span>
                         </div>
@@ -795,8 +795,8 @@ export function CommandView({
                     }}
                     className={`p-2 rounded-[6px] border flex flex-col items-center gap-1.5 transition-all cursor-pointer ${
                       isSelected
-                        ? 'bg-[var(--surface-raised)] border-[var(--hairline-active)] ring-1 ring-[var(--hairline-active)]'
-                        : 'bg-[var(--surface)] border-[var(--hairline)] hover:border-[var(--hairline-hover)]'
+                        ? 'bg-[var(--surface-raised)] border-[var(--line)] ring-1 ring-[var(--line)]'
+                        : 'bg-[var(--surface)] border-[var(--line)] hover:border-[var(--line)]'
                     }`}
                   >
                     <TriageTag priority={p} size="sm" />
@@ -823,7 +823,7 @@ export function CommandView({
                   className={`p-2 rounded-[6px] border text-left flex flex-col transition-all cursor-pointer ${
                     newZoneId === z.id
                       ? 'bg-[var(--surface-raised)] border-[var(--ink)] text-[var(--ink)]'
-                      : 'bg-[var(--surface)] border-[var(--hairline)] text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                      : 'bg-[var(--surface)] border-[var(--line)] text-[var(--ink-muted)] hover:text-[var(--ink)]'
                   }`}
                 >
                   <span className="font-serif-display text-base text-[var(--ink)]">
@@ -838,7 +838,7 @@ export function CommandView({
           </div>
 
           {/* ALS Requirement Toggle */}
-          <div className="flex items-center justify-between p-3 rounded-[6px] bg-[var(--surface)] border border-[var(--hairline)]">
+          <div className="flex items-center justify-between p-3 rounded-[6px] bg-[var(--surface)] border border-[var(--line)]">
             <div className="flex flex-col">
               <span className="text-xs font-ui font-medium text-[var(--ink)]">
                 Requires Advanced Life Support (ALS)
@@ -856,7 +856,7 @@ export function CommandView({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--hairline)]">
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--line)]">
             <Button
               type="button"
               variant="ghost"
@@ -893,7 +893,7 @@ export function CommandView({
               <ProvenanceChip kind="REAL SAMPLE" />
             </div>
 
-            <div className="p-3 bg-[var(--surface)] border border-[var(--hairline)] rounded-[8px] flex flex-col gap-2 font-mono-numbers text-xs">
+            <div className="p-3 bg-[var(--surface)] border border-[var(--line)] rounded-[8px] flex flex-col gap-2 font-mono-numbers text-xs">
               <div className="flex justify-between">
                 <span className="text-[var(--ink-muted)]">Status</span>
                 <span className="text-[var(--ink)] font-semibold">{selectedCall.status}</span>
@@ -924,7 +924,7 @@ export function CommandView({
               </div>
             </div>
 
-            <div className="flex items-center gap-2 mt-auto pt-4 border-t border-[var(--hairline)]">
+            <div className="flex items-center gap-2 mt-auto pt-4 border-t border-[var(--line)]">
               <Button
                 variant="secondary"
                 size="sm"
@@ -960,7 +960,7 @@ export function CommandView({
               <ProvenanceChip kind="REAL SAMPLE" />
             </div>
 
-            <div className="p-3 bg-[var(--surface)] border border-[var(--hairline)] rounded-[8px] flex flex-col gap-2 font-mono-numbers text-xs">
+            <div className="p-3 bg-[var(--surface)] border border-[var(--line)] rounded-[8px] flex flex-col gap-2 font-mono-numbers text-xs">
               <div className="flex justify-between">
                 <span className="text-[var(--ink-muted)]">Fleet ID</span>
                 <span className="text-[var(--ink)] font-semibold">{selectedUnit.id}</span>
@@ -1000,7 +1000,7 @@ export function CommandView({
               if (!activeDisp) return null;
 
               return (
-                <div className="p-2.5 rounded-[8px] bg-[var(--surface-raised)] border border-[var(--hairline)] flex flex-col gap-2 mt-2">
+                <div className="p-2.5 rounded-[8px] bg-[var(--surface-raised)] border border-[var(--line)] flex flex-col gap-2 mt-2">
                   <div className="flex items-center justify-between text-xs font-mono-numbers">
                     <span className="font-semibold text-[var(--ink)]">
                       Active Dispatch: {activeDisp.emergencyId}
@@ -1066,7 +1066,7 @@ export function CommandView({
               );
             })()}
 
-            <div className="flex items-center gap-2 mt-auto pt-4 border-t border-[var(--hairline)]">
+            <div className="flex items-center gap-2 mt-auto pt-4 border-t border-[var(--line)]">
               <Button
                 variant="secondary"
                 size="sm"

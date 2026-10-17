@@ -31,11 +31,6 @@
   --busy: #6B7785;
   --unit-busy: #6B7785;
 
-  /* Backward Compatibility Mappings */
-  --hairline: var(--line);
-  --hairline-hover: var(--line);
-  --hairline-active: var(--line);
-
   --ease-aura: cubic-bezier(0.16, 1, 0.3, 1);
   --duration-fast: 120ms;
   --duration-base: 240ms;
@@ -68,10 +63,6 @@
   --unit-available: #17B2B4;
   --busy: #828F9E;
   --unit-busy: #828F9E;
-
-  --hairline: var(--line);
-  --hairline-hover: var(--line);
-  --hairline-active: var(--line);
 }
 
 body {

@@ -437,7 +437,7 @@ export function RoutesView({ onNavigate, theme = 'paper' }: RoutesViewProps) {
           <Panel
             title="Corridor Graph"
             badge="REAL SAMPLE"
-            className="p-0 overflow-hidden relative border border-[var(--hairline)]"
+            className="p-0 overflow-hidden relative border border-[var(--line)]"
           >
             <div className="h-[520px] w-full relative">
               <RouteMap
@@ -455,7 +455,7 @@ export function RoutesView({ onNavigate, theme = 'paper' }: RoutesViewProps) {
 
               {/* Map Floating HUD Overlay */}
               <div className="absolute top-3 left-3 z-[400] flex flex-wrap items-center gap-2 pointer-events-auto">
-                <div className="px-2.5 py-1.5 rounded-[6px] bg-[var(--surface)]/90 backdrop-blur-md border border-[var(--hairline)] text-xs shadow-sm flex items-center gap-2">
+                <div className="px-2.5 py-1.5 rounded-[6px] bg-[var(--surface)]/90 backdrop-blur-md border border-[var(--line)] text-xs shadow-sm flex items-center gap-2">
                   <span className="font-mono-numbers text-[var(--ink-muted)]">Origin:</span>
                   <span className="font-semibold text-[var(--ink)]">
                     Sector {originZone}
@@ -468,7 +468,7 @@ export function RoutesView({ onNavigate, theme = 'paper' }: RoutesViewProps) {
                 </div>
 
                 {/* Road closure hint */}
-                <div className="px-2 py-1 rounded-[6px] bg-[var(--surface)]/90 backdrop-blur-md border border-[var(--hairline)] text-[10px] font-mono-numbers text-[var(--ink-muted)]">
+                <div className="px-2 py-1 rounded-[6px] bg-[var(--surface)]/90 backdrop-blur-md border border-[var(--line)] text-[10px] font-mono-numbers text-[var(--ink-muted)]">
                   Click road line to toggle closure
                 </div>
               </div>
@@ -476,7 +476,7 @@ export function RoutesView({ onNavigate, theme = 'paper' }: RoutesViewProps) {
 
             {/* In-Panel Tracing / Simulation Toolbar */}
             {isTracing ? (
-              <div className="p-4 border-t border-[var(--hairline)] bg-[var(--surface-raised)] flex flex-col gap-3">
+              <div className="p-4 border-t border-[var(--line)] bg-[var(--surface-raised)] flex flex-col gap-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-semibold uppercase tracking-wider text-[var(--high)]">
@@ -522,7 +522,7 @@ export function RoutesView({ onNavigate, theme = 'paper' }: RoutesViewProps) {
                       Next ›
                     </Button>
 
-                    <div className="h-4 w-px bg-[var(--hairline)] mx-1" />
+                    <div className="h-4 w-px bg-[var(--line)] mx-1" />
 
                     {/* Speed selector */}
                     <div className="flex items-center gap-1">
@@ -537,7 +537,7 @@ export function RoutesView({ onNavigate, theme = 'paper' }: RoutesViewProps) {
                           className={`px-1.5 py-0.5 rounded text-[10px] font-mono-numbers cursor-pointer transition-colors ${
                             traceSpeed === item.speed
                               ? 'bg-[var(--ink)] text-[var(--bg-app)]'
-                              : 'bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--ink)] border border-[var(--hairline)]'
+                              : 'bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--ink)] border border-[var(--line)]'
                           }`}
                         >
                           {item.label}
@@ -564,7 +564,7 @@ export function RoutesView({ onNavigate, theme = 'paper' }: RoutesViewProps) {
 
                 {/* Step Description Card */}
                 {currentTraceStep && (
-                  <div className="p-2.5 rounded-[6px] bg-[var(--surface)] border border-[var(--hairline)] text-xs font-mono-numbers flex flex-col gap-1.5">
+                  <div className="p-2.5 rounded-[6px] bg-[var(--surface)] border border-[var(--line)] text-xs font-mono-numbers flex flex-col gap-1.5">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] uppercase font-bold text-[var(--ink-muted)]">
                         Phase: {currentTraceStep.phase}
@@ -578,7 +578,7 @@ export function RoutesView({ onNavigate, theme = 'paper' }: RoutesViewProps) {
                     <div className="text-[var(--ink)] text-xs leading-relaxed">
                       {currentTraceStep.description}
                     </div>
-                    <div className="flex flex-wrap gap-1.5 pt-1 border-t border-[var(--hairline)] text-[10px] text-[var(--ink-muted)]">
+                    <div className="flex flex-wrap gap-1.5 pt-1 border-t border-[var(--line)] text-[10px] text-[var(--ink-muted)]">
                       <span>Tentative distances:</span>
                       {Object.entries(currentTraceStep.tentativeDistances).map(([nid, d]) => (
                         <span
@@ -600,7 +600,7 @@ export function RoutesView({ onNavigate, theme = 'paper' }: RoutesViewProps) {
               </div>
             ) : (
               /* Simulated Vehicle Toolbar */
-              <div className="p-3 border-t border-[var(--hairline)] bg-[var(--surface-raised)] flex flex-wrap items-center justify-between gap-3">
+              <div className="p-3 border-t border-[var(--line)] bg-[var(--surface-raised)] flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <span className="text-xl">🚑</span>
                   <div>
@@ -639,7 +639,7 @@ export function RoutesView({ onNavigate, theme = 'paper' }: RoutesViewProps) {
                     Reset
                   </Button>
 
-                  <div className="h-4 w-px bg-[var(--hairline)] mx-1" />
+                  <div className="h-4 w-px bg-[var(--line)] mx-1" />
 
                   {/* Multiplier buttons */}
                   <div className="flex items-center gap-1">
@@ -650,7 +650,7 @@ export function RoutesView({ onNavigate, theme = 'paper' }: RoutesViewProps) {
                         className={`px-1.5 py-0.5 rounded text-[10px] font-mono-numbers cursor-pointer transition-colors ${
                           vehicleSpeedMultiplier === m
                             ? 'bg-[var(--unit-available)] text-white'
-                            : 'bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--ink)] border border-[var(--hairline)]'
+                            : 'bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--ink)] border border-[var(--line)]'
                         }`}
                       >
                         ×{m}
@@ -677,7 +677,7 @@ export function RoutesView({ onNavigate, theme = 'paper' }: RoutesViewProps) {
                       className={`p-3 rounded-[6px] border cursor-pointer transition-all duration-150 flex items-center justify-between ${
                         isSelected
                           ? 'border-[var(--unit-available)] bg-[var(--unit-available)]/10 shadow-xs'
-                          : 'border-[var(--hairline)] bg-[var(--surface-raised)] hover:border-[var(--hairline-hover)]'
+                          : 'border-[var(--line)] bg-[var(--surface-raised)] hover:border-[var(--line)]'
                       }`}
                     >
                       <div className="flex flex-col gap-1">
@@ -685,7 +685,7 @@ export function RoutesView({ onNavigate, theme = 'paper' }: RoutesViewProps) {
                           <span className="text-xs font-semibold text-[var(--ink)]">
                             Alternative {idx + 1}
                           </span>
-                          <span className="font-mono-numbers text-[10px] px-1.5 py-0.5 rounded bg-[var(--surface)] border border-[var(--hairline)] text-[var(--high)]">
+                          <span className="font-mono-numbers text-[10px] px-1.5 py-0.5 rounded bg-[var(--surface)] border border-[var(--line)] text-[var(--high)]">
                             +{alt.deltaMinutes ?? 0}m
                           </span>
                         </div>
@@ -716,7 +716,7 @@ export function RoutesView({ onNavigate, theme = 'paper' }: RoutesViewProps) {
           <Panel title="Origin & Target Selection" badge="SIMULATED">
             <div className="flex flex-col gap-3">
               {/* Mode switch */}
-              <div className="flex rounded-[6px] p-0.5 bg-[var(--surface-raised)] border border-[var(--hairline)] text-xs">
+              <div className="flex rounded-[6px] p-0.5 bg-[var(--surface-raised)] border border-[var(--line)] text-xs">
                 <button
                   onClick={() => setSelectionMode('custom')}
                   className={`flex-1 py-1 rounded-[4px] font-mono-numbers text-center cursor-pointer transition-colors ${
@@ -755,7 +755,7 @@ export function RoutesView({ onNavigate, theme = 'paper' }: RoutesViewProps) {
                           className={`p-2.5 rounded-[6px] border cursor-pointer transition-colors text-xs flex items-center justify-between ${
                             isSelected
                               ? 'border-[var(--unit-available)] bg-[var(--unit-available)]/10'
-                              : 'border-[var(--hairline)] bg-[var(--surface-raised)] hover:border-[var(--hairline-hover)]'
+                              : 'border-[var(--line)] bg-[var(--surface-raised)] hover:border-[var(--line)]'
                           }`}
                         >
                           <div className="flex items-center gap-2">
@@ -790,7 +790,7 @@ export function RoutesView({ onNavigate, theme = 'paper' }: RoutesViewProps) {
                           className={`py-1.5 px-1 rounded-[4px] text-xs font-mono-numbers border text-center cursor-pointer transition-colors ${
                             selectedAmbulanceId === amb.id
                               ? 'bg-[var(--unit-available)] text-white border-[var(--unit-available)]'
-                              : 'bg-[var(--surface-raised)] text-[var(--ink)] border-[var(--hairline)] hover:border-[var(--hairline-hover)]'
+                              : 'bg-[var(--surface-raised)] text-[var(--ink)] border-[var(--line)] hover:border-[var(--line)]'
                           }`}
                         >
                           <div className="font-bold">{amb.id}</div>
@@ -816,7 +816,7 @@ export function RoutesView({ onNavigate, theme = 'paper' }: RoutesViewProps) {
                           className={`p-1.5 rounded-[4px] text-xs border text-left cursor-pointer transition-colors flex items-center justify-between ${
                             selectedEmergencyId === em.id
                               ? 'border-[var(--critical)] bg-[var(--critical)]/10 text-[var(--ink)]'
-                              : 'bg-[var(--surface-raised)] border-[var(--hairline)] text-[var(--ink)] hover:border-[var(--hairline-hover)]'
+                              : 'bg-[var(--surface-raised)] border-[var(--line)] text-[var(--ink)] hover:border-[var(--line)]'
                           }`}
                         >
                           <div className="flex items-center gap-1.5">
@@ -875,7 +875,7 @@ export function RoutesView({ onNavigate, theme = 'paper' }: RoutesViewProps) {
               </div>
 
               {/* Path Breadcrumbs */}
-              <div className="pt-3 border-t border-[var(--hairline)]">
+              <div className="pt-3 border-t border-[var(--line)]">
                 <div className="text-[10px] font-mono-numbers uppercase text-[var(--ink-muted)] mb-1">
                   Corridor Path ({activePath.length} Waypoints)
                 </div>
@@ -885,7 +885,7 @@ export function RoutesView({ onNavigate, theme = 'paper' }: RoutesViewProps) {
                     const isLast = idx === activePath.length - 1;
                     return (
                       <React.Fragment key={nodeId}>
-                        <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--surface-raised)] border border-[var(--hairline)] text-xs font-mono-numbers">
+                        <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--surface-raised)] border border-[var(--line)] text-xs font-mono-numbers">
                           <span className="font-bold text-[var(--ink)]">{nodeId}</span>
                           {z && (
                             <span className="text-[10px] text-[var(--ink-muted)]">
@@ -919,7 +919,7 @@ export function RoutesView({ onNavigate, theme = 'paper' }: RoutesViewProps) {
                       className={`px-3 py-2 rounded-[6px] border cursor-pointer transition-colors flex items-center justify-between text-xs font-mono-numbers ${
                         isBlocked
                           ? 'border-[var(--critical)] bg-[var(--critical)]/10 text-[var(--critical)]'
-                          : 'border-[var(--hairline)] bg-[var(--surface-raised)] text-[var(--ink)] hover:border-[var(--hairline-hover)]'
+                          : 'border-[var(--line)] bg-[var(--surface-raised)] text-[var(--ink)] hover:border-[var(--line)]'
                       }`}
                     >
                       <div className="flex items-center gap-2">
@@ -936,7 +936,7 @@ export function RoutesView({ onNavigate, theme = 'paper' }: RoutesViewProps) {
                           className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
                             isBlocked
                               ? 'bg-[var(--critical)] text-white'
-                              : 'bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--hairline)]'
+                              : 'bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--line)]'
                           }`}
                         >
                           {isBlocked ? 'BLOCKED 🚫' : 'OPEN'}

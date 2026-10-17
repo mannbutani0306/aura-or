@@ -235,7 +235,7 @@ export function EmergencyTableView({
                 <th className="py-2.5 px-3.5 font-medium text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--hairline)]">
+            <tbody className="divide-y divide-[var(--line)]">
               {filteredEmergencies.map((em, idx) => {
                 const zone = zoneMap.get(em.zoneId);
                 const isFocused = idx === focusedIndex;
@@ -257,7 +257,7 @@ export function EmergencyTableView({
                     onMouseEnter={() => setFocusedIndex(idx)}
                     className={`transition-colors cursor-pointer ${
                       isFocused
-                        ? 'bg-[var(--surface-raised)] ring-1 ring-inset ring-[var(--hairline-hover)]'
+                        ? 'bg-[var(--surface-raised)] ring-1 ring-inset ring-[var(--line)]'
                         : 'hover:bg-[var(--surface-raised)]/60'
                     }`}
                   >
@@ -286,7 +286,7 @@ export function EmergencyTableView({
                         <div className="inline-flex items-center gap-1.5" title={`Status: ${em.status}`}>
                           {/* 3-dot track with connecting hairline */}
                           <div className="relative flex items-center gap-2">
-                            <div className="absolute top-1/2 left-1.5 right-1.5 -translate-y-1/2 h-[1px] bg-[var(--hairline)] pointer-events-none" />
+                            <div className="absolute top-1/2 left-1.5 right-1.5 -translate-y-1/2 h-[1px] bg-[var(--line)] pointer-events-none" />
                             {[0, 1, 2].map((s) => {
                               const isCompletedStep = stepIdx >= s;
                               const isCurrent = stepIdx === s;
@@ -298,7 +298,7 @@ export function EmergencyTableView({
                                       ? 'bg-[var(--unit-available)] ring-2 ring-[var(--unit-available)]/30 scale-125'
                                       : isCompletedStep
                                       ? 'bg-[var(--unit-available)]'
-                                      : 'bg-[var(--hairline-hover)]'
+                                      : 'bg-[var(--line)]'
                                   }`}
                                 />
                               );
@@ -376,7 +376,7 @@ export function EmergencyTableView({
           <p className="text-xs text-[var(--ink-muted)] leading-relaxed font-ui">
             Are you sure you want to cancel call <strong className="text-[var(--ink)] font-mono-numbers">{pendingCancelCall?.id}</strong>? An undo window will remain open for 6 seconds.
           </p>
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--hairline)]">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--line)]">
             <Button variant="ghost" size="sm" onClick={() => setPendingCancelCall(null)}>
               Dismiss
             </Button>

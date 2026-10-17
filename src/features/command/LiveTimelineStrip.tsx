@@ -182,7 +182,7 @@ export function LiveTimelineStrip({
                   className={`p-2 rounded-[8px] border transition-all duration-150 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${
                     isBreached
                       ? 'bg-[var(--critical)]/5 border-[var(--critical)]/40'
-                      : 'bg-[var(--surface-raised)] border-[var(--hairline)] hover:border-[var(--hairline-hover)]'
+                      : 'bg-[var(--surface-raised)] border-[var(--line)] hover:border-[var(--line)]'
                   }`}
                 >
                   {/* Left: Unit & Incident Identifiers */}
@@ -193,7 +193,7 @@ export function LiveTimelineStrip({
                         {disp.ambulanceId}
                       </span>
                       {amb && (
-                        <span className="px-1 py-0.2 rounded text-[9px] bg-[var(--surface)] text-[var(--ink-muted)] font-mono-numbers border border-[var(--hairline)]">
+                        <span className="px-1 py-0.2 rounded text-[9px] bg-[var(--surface)] text-[var(--ink-muted)] font-mono-numbers border border-[var(--line)]">
                           {amb.type}
                         </span>
                       )}
@@ -253,7 +253,7 @@ export function LiveTimelineStrip({
                     </div>
 
                     {/* Timeline Track with Benchmark and Progress Fill */}
-                    <div className="relative w-full h-3.5 bg-[var(--surface)] rounded-[4px] border border-[var(--hairline)] overflow-hidden">
+                    <div className="relative w-full h-3.5 bg-[var(--surface)] rounded-[4px] border border-[var(--line)] overflow-hidden">
                       {/* SLA Benchmark 10m Marker Line */}
                       <div
                         className="absolute top-0 bottom-0 w-[2px] bg-[var(--critical)] z-10 opacity-75"

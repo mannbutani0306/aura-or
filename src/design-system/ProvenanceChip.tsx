@@ -13,14 +13,14 @@ export function ProvenanceChip({ kind, className = '' }: ProvenanceChipProps) {
     'REAL SAMPLE': 'SAMPLE',
     SIMULATED: 'SIM',
     DERIVED: 'DERIVED',
-    DEMO: 'DEMO',
+    DEMO: 'BASELINE',
   };
 
   const tooltipMap: Record<ProvenanceKind, string> = {
     'REAL SAMPLE': 'Madurai municipal sample records',
     SIMULATED: 'Simulated stochastic dispatch queue',
     DERIVED: 'Computed via network shortest-path matrix',
-    DEMO: 'Baseline demonstration scenario',
+    DEMO: 'Baseline dispatch scenario',
   };
 
   const shortLabel = labelMap[kind] || kind;

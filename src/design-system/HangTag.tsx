@@ -76,7 +76,7 @@ export function HangTag({
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
       aria-label={`Triage priority: ${priority} (Level ${scheme.glyph})`}
-      className={`relative inline-flex items-center font-mono-numbers font-bold tracking-wider uppercase select-none rounded-[10px] border-2 shadow-[2px_2px_0_var(--shadow-ink)] transition-transform focus-ring active:scale-95 ${
+      className={`relative inline-flex items-center font-mono-numbers font-bold tracking-wider uppercase select-none rounded-[12px] border-2 shadow-[2px_2px_0_var(--shadow-ink)] transition-transform focus-ring active:scale-95 ${
         onClick ? 'cursor-pointer hover:-translate-y-0.5' : ''
       } ${sizeStyles[size]} ${className}`}
       style={{

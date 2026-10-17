@@ -324,7 +324,7 @@ export function RouteMap({
           padding: 2px 8px;
           border-radius: 6px;
           background: var(--surface-raised);
-          border: 1px solid var(--hairline-hover);
+          border: 1px solid var(--line);
           color: var(--ink);
           box-shadow: 0 2px 6px rgba(0,0,0,0.1);
           white-space: nowrap;
@@ -378,7 +378,7 @@ export function RouteMap({
           font-family: 'Geist Mono', monospace;
           font-size: 10px;
           background: var(--surface);
-          border: 1px solid var(--hairline);
+          border: 1px solid var(--line);
         }
         .aura-trace-badge.current {
           border-color: var(--high);

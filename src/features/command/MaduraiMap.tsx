@@ -305,7 +305,7 @@ export function MaduraiMap({
           html: `
             <div class="aura-unit-pin en-route ${isBreached ? 'sla-breached' : ''}" style="position: relative;" title="${amb.id} En Route to ${disp.emergencyId} (Zone ${disp.toZone}) · ETA ${disp.etaMin}m · Elapsed ${(elapsedSimSec / 60).toFixed(1)}m">
               <svg width="44" height="44" style="position: absolute; top: -6px; left: -6px; transform: rotate(-90deg); pointer-events: none;">
-                <circle cx="22" cy="22" r="18" fill="none" stroke="var(--hairline)" stroke-width="2.5" />
+                <circle cx="22" cy="22" r="18" fill="none" stroke="var(--line)" stroke-width="2.5" />
                 <circle cx="22" cy="22" r="18" fill="none" stroke="${isBreached ? '#E5322D' : '#0F8B8D'}" stroke-width="2.5" stroke-dasharray="${circumference}" stroke-dashoffset="${strokeDashoffset}" />
               </svg>
               <div class="aura-unit-ring rotating"></div>
@@ -439,7 +439,7 @@ export function MaduraiMap({
         .aura-map-tooltip {
           background-color: var(--surface-raised) !important;
           color: var(--ink) !important;
-          border: 1px solid var(--hairline-hover) !important;
+          border: 1px solid var(--line) !important;
           border-radius: 4px !important;
           font-family: 'Geist Mono', monospace !important;
           font-size: 11px !important;
@@ -510,7 +510,7 @@ export function MaduraiMap({
           height: 26px;
           border-radius: 50%;
           background: var(--surface-raised);
-          border: 1px solid var(--hairline);
+          border: 1px solid var(--line);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -524,7 +524,7 @@ export function MaduraiMap({
           display: flex;
           gap: 3px;
           background: var(--surface);
-          border: 1px solid var(--hairline);
+          border: 1px solid var(--line);
           border-radius: 3px;
           padding: 1px 4px;
           font-family: 'Geist Mono', monospace;

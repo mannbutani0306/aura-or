@@ -83,7 +83,7 @@ export function OfflineState({ error, onRetry }: OfflineStateProps) {
             }}
             className="w-full sm:w-auto px-6"
           >
-            Demo mode
+            Sample mode
           </Button>
         </div>
       </div>
