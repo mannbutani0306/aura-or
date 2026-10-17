@@ -10,6 +10,17 @@ import { supabase, hasSupabaseConfig } from './supabaseClient';
 import type { SolveRequest, SolveResponse } from '../utils/solver';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
+async function apiErrorMessage(response: Response, fallback: string): Promise<string> {
+  const payload: unknown = await response.json().catch(() => null);
+  if (!payload || typeof payload !== 'object') return fallback;
+  const error = (payload as Record<string, unknown>).error;
+  if (typeof error === 'string') return error;
+  if (error && typeof error === 'object' && typeof (error as Record<string, unknown>).message === 'string') {
+    return String((error as Record<string, unknown>).message);
+  }
+  return fallback;
+}
+
 export class SupabaseDataSource implements DataSource {
   private zones: Zone[] = [];
   private roads: RoadEdge[] = [];
@@ -713,7 +724,7 @@ export class SupabaseDataSource implements DataSource {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
       });
-      if (!resp.ok) throw new Error('Failed to create emergency');
+      if (!resp.ok) throw new Error(await apiErrorMessage(resp, 'Failed to create emergency'));
       const data = await resp.json();
       const created: Emergency = {
         id: String(data.id),
@@ -978,8 +989,7 @@ export class SupabaseDataSource implements DataSource {
     });
 
     if (!resp.ok) {
-      const data = await resp.json().catch(() => ({}));
-      throw new Error(data.error || `HTTP ${resp.status}: Batch dispatch failed`);
+      throw new Error(await apiErrorMessage(resp, `HTTP ${resp.status}: Batch dispatch failed`));
     }
 
     await this.initialLoad();
@@ -995,8 +1005,7 @@ export class SupabaseDataSource implements DataSource {
     });
 
     if (!resp.ok) {
-      const data = await resp.json().catch(() => ({}));
-      throw new Error(data.error || `Failed to advance dispatch ${id}`);
+      throw new Error(await apiErrorMessage(resp, `Failed to advance dispatch ${id}`));
     }
 
     await this.initialLoad();
@@ -1009,8 +1018,7 @@ export class SupabaseDataSource implements DataSource {
     });
 
     if (!resp.ok) {
-      const data = await resp.json().catch(() => ({}));
-      throw new Error(data.error || `Failed to cancel dispatch ${id}`);
+      throw new Error(await apiErrorMessage(resp, `Failed to cancel dispatch ${id}`));
     }
 
     await this.initialLoad();

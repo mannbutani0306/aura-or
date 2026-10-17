@@ -2,10 +2,11 @@
 
 ## Checklist
 
-- [x] STEP 1 — Add typed EMS/config repositories, sample-based Insights charts/filters/findings, SQL copy controls, and read `app_config.sla_min` in Command and Dispatch.
-- [x] STEP 2 — Add the Pulse server lifecycle/API and header control; label generated calls and explain provenance.
-- [x] STEP 3 — Implement reduced-motion-aware motion, responsive safeguards, accessibility, and performance improvements; verify all viewport sizes during Step 4 screenshot review.
-- [ ] STEP 4 — Screenshot/QA review and push are complete; the production Lighthouse performance gate remains below target.
+- [x] STEP 1 — Split the Express application, routes, shared Supabase/fallback state, config reader, and simulation clock; validate POST bodies and centralize structured errors.
+- [ ] STEP 2 — Unify AppConfig defaults/loading and correct area types.
+- [ ] STEP 3 — Apply ALS/SLA/cap costs consistently through HiGHS, Hungarian, and both baselines; add UI assignment markers/reasons.
+- [ ] STEP 4 — Add the model and settings drawers with persisted, validated configuration.
+- [ ] STEP 5 — Build scenario presets, Guide 5×5 fixture, Lab UI, and verification/push.
 
 ## Notes
 
@@ -19,3 +20,4 @@
 - Production Lighthouse last measured 96 accessibility and 44 performance (target 85). The app was code-split, Leaflet and fonts were adjusted, and Express compression/cache headers added, but the performance threshold remains unmet.
 - The configured Supabase project does not expose `ems_cases` or the `v_ems_*` views in its PostgREST schema cache. Insights and Pulse display explicit errors and do not fabricate data; sample-driven behavior cannot be verified until the objects are exposed.
 - The hidden /#/kit route remains available for design-system inspection, but it is not surfaced in the main navigation list.
+- Server refactor Step 1: all 16 original endpoint paths are registered in route modules; successful GET response keys were smoke-tested, invalid POST returned the structured validation envelope, lint passed, and the 52-case UI suite passed.
