@@ -32,9 +32,12 @@ export function FirstLoadIntro({ onComplete }: FirstLoadIntroProps) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="AURA initialization sequence"
-      onClick={handleSkip}
-      className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-[var(--bg-app)] cursor-pointer select-none transition-opacity duration-240 ${
+      aria-labelledby="intro-wordmark"
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ' || event.key === 'Escape') handleSkip();
+      }}
+      tabIndex={0}
+      className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-[var(--bg-app)] select-none transition-opacity duration-240 ${
         isFadingOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >
@@ -70,21 +73,13 @@ export function FirstLoadIntro({ onComplete }: FirstLoadIntroProps) {
 
         {/* Wordmark resolving */}
         <div className="flex items-baseline gap-2 intro-wordmark-fade">
-          <span className="font-serif-display italic tracking-tight lowercase text-[var(--ink)] text-5xl">
+          <span id="intro-wordmark" className="font-serif-display italic tracking-tight lowercase text-[var(--ink)] text-5xl">
             aura
           </span>
-          <span className="text-xl text-[var(--critical)] animate-pulse">🫀</span>
+          <span className="sticker-drop-in text-xl text-[var(--critical)]" style={{ animationDelay: '80ms' }}>🫀</span>
         </div>
 
-        {/* Subtitle & skip hint */}
-        <div className="flex flex-col items-center gap-1.5 intro-meta-fade">
-          <span className="font-mono-numbers text-[11px] uppercase tracking-widest text-[var(--ink-muted)]">
-            Madurai Emergency Telematics
-          </span>
-          <span className="text-[10px] font-mono-numbers text-[var(--ink-subtle)]">
-            Press any key or click to skip
-          </span>
-        </div>
+        <button type="button" onClick={handleSkip} className="intro-meta-fade rounded-full border-2 border-[var(--line)] bg-[var(--surface-raised)] px-4 py-2 font-mono-numbers text-[10px] font-bold uppercase text-[var(--ink)] shadow-[3px_3px_0_var(--shadow-ink)] focus-ring">Continue</button>
       </div>
 
       <style>{`
@@ -101,7 +96,7 @@ export function FirstLoadIntro({ onComplete }: FirstLoadIntroProps) {
         .intro-wordmark-fade {
           opacity: 0;
           transform: translateY(6px);
-          animation: introWordmarkIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
+          animation: introWordmarkIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.08s forwards;
         }
         @keyframes introWordmarkIn {
           to {
@@ -111,7 +106,7 @@ export function FirstLoadIntro({ onComplete }: FirstLoadIntroProps) {
         }
         .intro-meta-fade {
           opacity: 0;
-          animation: introMetaIn 0.3s ease-out 0.75s forwards;
+          animation: introMetaIn 0.3s ease-out 0.16s forwards;
         }
         @keyframes introMetaIn {
           to {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface AnimatedCounterProps {
   value: number;
@@ -17,9 +17,28 @@ export function AnimatedCounter({
   prefix = '',
   suffix = '',
 }: AnimatedCounterProps) {
-  const [displayValue, setDisplayValue] = useState(value);
+  const [displayValue, setDisplayValue] = useState(0);
+  const [hasEnteredViewport, setHasEnteredViewport] = useState(false);
+  const counterRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
+    const element = counterRef.current;
+    if (!element || typeof IntersectionObserver === 'undefined') {
+      setHasEnteredViewport(true);
+      return;
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setHasEnteredViewport(true);
+        observer.disconnect();
+      }
+    }, { threshold: 0.1 });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!hasEnteredViewport) return;
     // Respect prefers-reduced-motion
     if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       setDisplayValue(value);
@@ -51,12 +70,12 @@ export function AnimatedCounter({
 
     frameId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frameId);
-  }, [value, durationMs]);
+  }, [value, durationMs, hasEnteredViewport]);
 
   const formatted = decimals > 0 ? displayValue.toFixed(decimals) : Math.round(displayValue).toString();
 
   return (
-    <span className={`tabular-nums font-mono-numbers ${className}`}>
+    <span ref={counterRef} className={`tabular-nums font-mono-numbers ${className}`}>
       {prefix}
       {formatted}
       {suffix}

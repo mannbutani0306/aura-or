@@ -97,6 +97,7 @@ export function EcgStrip({
                 stroke={activeColor}
                 strokeWidth={compact ? 1 : 1.25}
                 opacity={0.3}
+                className="ecg-draw-in"
               />
               <path
                 d={sinusPath}

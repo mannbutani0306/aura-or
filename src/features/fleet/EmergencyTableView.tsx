@@ -131,6 +131,7 @@ export function EmergencyTableView({
       onAddToast({
         type: 'success',
         message: `${call.id} status updated to ${nextStatus}`,
+        ...(nextStatus === 'Completed' ? { stamp: 'CLEARED' as const } : {}),
       });
     } catch (err: any) {
       onAddToast({

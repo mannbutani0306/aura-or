@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Dispatch, Ambulance, Emergency, EmergencyPriority } from '../../types';
 import { dataSource } from '../../data';
-import { Button, Tooltip, TriageTag } from '../../design-system';
+import { Button, Tooltip, TriageTag, ToastMessage } from '../../design-system';
 
 interface LiveTimelineStripProps {
   dispatches: Dispatch[];
@@ -9,9 +9,10 @@ interface LiveTimelineStripProps {
   emergencies: Emergency[];
   simSpeed?: number;
   currentTime?: number;
+  slaBenchmarkMin?: number | null;
   onSelectDispatch?: (dispatch: Dispatch) => void;
   onNavigate?: (tab: string) => void;
-  onToast?: (toast: { type: 'success' | 'error' | 'info'; message: string }) => void;
+  onToast?: (toast: Omit<ToastMessage, 'id'>) => void;
 }
 
 const PRIORITY_COLORS: Record<EmergencyPriority, string> = {
@@ -27,6 +28,7 @@ export function LiveTimelineStrip({
   emergencies,
   simSpeed = 1,
   currentTime = Date.now(),
+  slaBenchmarkMin = null,
   onSelectDispatch,
   onNavigate,
   onToast,
@@ -52,6 +54,7 @@ export function LiveTimelineStrip({
       onToast?.({
         type: 'success',
         message: `Dispatch ${dispatchId} advanced to ${nextStatus}`,
+        stamp: nextStatus === 'Completed' ? 'CLEARED' : 'ON SCENE',
       });
     } catch (err: any) {
       onToast?.({
@@ -124,7 +127,7 @@ export function LiveTimelineStrip({
         <div className="flex items-center gap-3 text-[10px] text-[var(--ink-muted)]">
           <div className="hidden sm:flex items-center gap-1.5">
             <span className="inline-block w-2.5 h-[2px] bg-[var(--critical)] border-t border-dashed" />
-            <span>SLA Benchmark: 10.0m</span>
+            <span>SLA Benchmark: {slaBenchmarkMin === null ? 'unavailable' : `${slaBenchmarkMin.toFixed(1)}m`}</span>
           </div>
           {onNavigate && (
             <button
@@ -160,7 +163,7 @@ export function LiveTimelineStrip({
                 ((currentTime - dispatchedAt) / 1000) * simSpeed
               );
               const elapsedSimMin = elapsedSimSec / 60;
-              const isBreached = elapsedSimMin > disp.benchmarkMin;
+              const isBreached = slaBenchmarkMin !== null && elapsedSimMin > slaBenchmarkMin;
 
               const progressPercent = Math.min(
                 100,
@@ -170,10 +173,9 @@ export function LiveTimelineStrip({
                 100,
                 (disp.etaMin / maxTimelineMin) * 100
               );
-              const benchmarkPercent = Math.min(
-                100,
-                (disp.benchmarkMin / maxTimelineMin) * 100
-              );
+              const benchmarkPercent = slaBenchmarkMin === null
+                ? null
+                : Math.min(100, (slaBenchmarkMin / maxTimelineMin) * 100);
 
               return (
                 <div
@@ -254,12 +256,13 @@ export function LiveTimelineStrip({
 
                     {/* Timeline Track with Benchmark and Progress Fill */}
                     <div className="relative w-full h-3.5 bg-[var(--surface)] rounded-[4px] border border-[var(--line)] overflow-hidden">
-                      {/* SLA Benchmark 10m Marker Line */}
-                      <div
-                        className="absolute top-0 bottom-0 w-[2px] bg-[var(--critical)] z-10 opacity-75"
-                        style={{ left: `${benchmarkPercent}%` }}
-                        title="SLA Benchmark: 10.0 min"
-                      />
+                      {benchmarkPercent !== null && (
+                        <div
+                          className="absolute top-0 bottom-0 w-[2px] bg-[var(--critical)] z-10 opacity-80"
+                          style={{ left: `${benchmarkPercent}%` }}
+                          title={`SLA Benchmark: ${slaBenchmarkMin?.toFixed(1) ?? 'unavailable'} min`}
+                        />
+                      )}
 
                       {/* Planned ETA Marker */}
                       <div

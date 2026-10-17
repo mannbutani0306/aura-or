@@ -34,12 +34,12 @@ export function Drawer({
       {/* Backdrop */}
       <div
         onClick={onClose}
-        className="fixed inset-0 bg-black/50 backdrop-blur-[2px] transition-opacity animate-in fade-in duration-200"
+        className="fixed inset-0 bg-black/50 transition-opacity animate-in fade-in duration-200"
       />
 
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-8 sm:pl-10">
         <div
-          className={`relative w-screen ${width} bg-[var(--surface-raised)] border-l-2 border-[var(--line)] shadow-[-8px_0_0_var(--shadow-ink)] flex flex-col animate-in slide-in-from-right duration-240`}
+          className={`relative w-screen ${width} bg-[var(--surface-raised)] border-l-2 border-[var(--line)] shadow-[-8px_0_0_var(--shadow-ink)] flex flex-col paper-slide-in`}
           style={{ animationTimingFunction: 'var(--ease-aura)' }}
         >
           {/* Perforated edge on the left border using a radial-gradient mask strip */}

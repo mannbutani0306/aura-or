@@ -39,12 +39,12 @@ export function Modal({
       {/* Backdrop */}
       <div
         onClick={onClose}
-        className="fixed inset-0 bg-black/60 backdrop-blur-[2px] transition-opacity animate-in fade-in duration-150"
+        className="fixed inset-0 bg-black/60 transition-opacity animate-in fade-in duration-150"
       />
 
       {/* Modal Surface: Big Slip with Tape and Stamp-Down Animation */}
       <div
-        className={`relative w-full ${maxWidth} bg-[var(--surface-raised)] border-2 border-[var(--line)] rounded-[28px] shadow-[8px_8px_0_var(--shadow-ink)] flex flex-col overflow-visible animate-stamp-down`}
+        className={`group relative w-full ${maxWidth} bg-[var(--surface-raised)] border-2 border-[var(--line)] rounded-[28px] shadow-[8px_8px_0_var(--shadow-ink)] flex flex-col overflow-visible paper-slide-in`}
         style={{ animationTimingFunction: 'var(--ease-aura)' }}
       >
         {/* Surgical tape in corner */}

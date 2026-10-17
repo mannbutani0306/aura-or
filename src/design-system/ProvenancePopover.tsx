@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Tooltip } from './Tooltip';
+import { EMS_SAMPLE_LABEL } from '../data/provenance';
 
 const entries = [
-  { name: 'EMS statistics', kind: 'PROVIDED SAMPLE', detail: 'Workbook sheet: dummy_ambulance_data' },
+  { name: 'EMS statistics', kind: EMS_SAMPLE_LABEL, detail: 'Workbook sheet: dummy_ambulance_data' },
   { name: 'Road minutes', kind: 'DERIVED', detail: 'Coordinates at 36 km/h × 1.3 detour' },
   { name: 'Fleet and live calls', kind: 'SIMULATED', detail: 'Current scenario activity' },
 ] as const;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { lazy, Suspense, useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Wordmark,
   EcgStrip,
@@ -17,6 +17,8 @@ import {
   Kbd,
   PulseControl,
   ProvenancePopover,
+  ToastContainer,
+  ToastMessage,
 } from './design-system';
 import {
   IconUnit,
@@ -32,9 +34,10 @@ import { dataSource, ConnectionStatus, EventLogRow } from './data';
 import { CommandView } from './features/command/CommandView';
 import { DispatchView } from './features/dispatch/DispatchView';
 import { FleetView } from './features/fleet/FleetView';
-import { RoutesView } from './features/routes/RoutesView';
-import { InsightsView } from './features/insights/InsightsView';
 import { DesignKitView } from './features/kit/DesignKitView';
+
+const RoutesView = lazy(() => import('./features/routes/RoutesView').then((module) => ({ default: module.RoutesView })));
+const InsightsView = lazy(() => import('./features/insights/InsightsView').then((module) => ({ default: module.InsightsView })));
 
 export type NavTabId = 'command' | 'dispatch' | 'fleet' | 'routes' | 'insights' | 'kit';
 
@@ -81,6 +84,9 @@ export default function App() {
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  const dismissToast = (id: string) => setToasts((current) => current.filter((toast) => toast.id !== id));
 
   const handleExecuteReset = async () => {
     setIsResetting(true);
@@ -88,6 +94,13 @@ export default function App() {
     try {
       await dataSource.resetDemo();
       setIsResetModalOpen(false);
+      setToasts((current) => [...current, {
+        id: `reset-${Date.now()}`,
+        type: 'success',
+        message: 'Scenario reset complete',
+        stamp: 'CLEARED',
+        stampLabel: 'RESET',
+      }]);
     } catch (err: any) {
       setResetMessage(err.message || 'Failed to reset scenario');
     } finally {
@@ -442,11 +455,15 @@ export default function App() {
           )}
 
           {activeTab === 'routes' && (
-            <RoutesView onNavigate={handleNavigate} theme={theme} />
+            <Suspense fallback={<div role="status" className="rounded-[20px] border-2 border-[var(--line)] bg-[var(--surface-raised)] p-8 text-center font-mono-numbers text-xs uppercase tracking-widest text-[var(--ink-muted)]">Loading route sheet…</div>}>
+              <RoutesView onNavigate={handleNavigate} theme={theme} />
+            </Suspense>
           )}
 
           {activeTab === 'insights' && (
-            <InsightsView onNavigate={handleNavigate} />
+            <Suspense fallback={<div role="status" className="rounded-[20px] border-2 border-[var(--line)] bg-[var(--surface-raised)] p-8 text-center font-mono-numbers text-xs uppercase tracking-widest text-[var(--ink-muted)]">Loading insights…</div>}>
+              <InsightsView onNavigate={handleNavigate} />
+            </Suspense>
           )}
 
           {activeTab === 'kit' && (
@@ -497,6 +514,8 @@ export default function App() {
         onClose={() => setIsCommandPaletteOpen(false)}
         items={commandPaletteItems}
       />
+
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
 
       {/* 6. Realtime Events Drawer */}
       <EventsDrawer

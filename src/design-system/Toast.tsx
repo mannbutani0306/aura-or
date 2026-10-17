@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { IconClose, IconAlert, IconCheck } from './icons';
+import { Stamp, StampVariant } from './Stamp';
 
 export interface ToastMessage {
   id: string;
@@ -7,6 +8,8 @@ export interface ToastMessage {
   message: string;
   undoAction?: () => void;
   durationMs?: number;
+  stamp?: StampVariant;
+  stampLabel?: string;
 }
 
 interface ToastProps {
@@ -51,7 +54,7 @@ function ToastItem({ toast, onDismiss }: { toast: ToastMessage; onDismiss: () =>
 
   return (
     <div
-      className={`relative pointer-events-auto p-3.5 rounded-[14px] bg-[var(--surface-raised)] border-2 shadow-[4px_4px_0_var(--shadow-ink)] flex flex-col overflow-hidden animate-stamp-down ${
+      className={`relative pointer-events-auto p-3.5 rounded-[14px] bg-[var(--surface-raised)] border-2 shadow-[4px_4px_0_var(--shadow-ink)] flex flex-col overflow-hidden toast-stamp-in ${
         isError
           ? 'border-[var(--critical)] text-[var(--critical)]'
           : 'border-[var(--line)] text-[var(--ink)]'
@@ -72,6 +75,7 @@ function ToastItem({ toast, onDismiss }: { toast: ToastMessage; onDismiss: () =>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          {toast.stamp && <Stamp variant={toast.stamp} animate ariaLabel={toast.stampLabel ?? toast.stamp}>{toast.stampLabel ?? toast.stamp}</Stamp>}
           {isUndo && toast.undoAction && (
             <button
               onClick={() => {

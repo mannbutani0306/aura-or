@@ -179,6 +179,7 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
     await new Promise((resolve) => setTimeout(resolve, 350));
     setAnimStage(3);
     setIsSolving(false);
+    addToast({ type: 'success', message: 'Solver finished', stamp: 'STAT', stampLabel: 'SOLVED' });
   };
 
   // Keyboard shortcut: Ctrl+Enter or Cmd+Enter to solve
@@ -326,6 +327,7 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
       addToast({
         type: 'success',
         message: `Dispatched ${items.length} emergency units atomically`,
+        stamp: 'DISPATCHED',
       });
       onNavigate('command');
     } catch (err: any) {

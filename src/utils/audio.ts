@@ -53,3 +53,27 @@ export function playSoftAlertBeep(): void {
     // Non-blocking if audio context is restricted
   }
 }
+
+export function playStampThud(): void {
+  if (!isSoundEnabled() || typeof window === 'undefined') return;
+  try {
+    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const context = new AudioContextClass();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    const now = context.currentTime;
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(105, now);
+    oscillator.frequency.exponentialRampToValueAtTime(54, now + 0.09);
+    gain.gain.setValueAtTime(0.045, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start(now);
+    oscillator.stop(now + 0.11);
+    oscillator.onended = () => { void context.close(); };
+  } catch {
+    return;
+  }
+}

@@ -27,7 +27,7 @@ export function OfflineState({ error, onRetry }: OfflineStateProps) {
       role="alert"
       className="fixed inset-0 z-50 flex flex-col items-center justify-center p-6 bg-[var(--bg-app)] text-[var(--ink)] select-none ecg-grid"
     >
-      <div className="relative w-full max-w-md flex flex-col items-center text-center gap-5 p-8 rounded-[28px] bg-[var(--surface-raised)] border-2 border-[var(--line)] shadow-[8px_8px_0_var(--shadow-ink)] animate-stamp-down">
+      <div className="group relative w-full max-w-md flex flex-col items-center text-center gap-5 p-8 rounded-[28px] bg-[var(--surface-raised)] border-2 border-[var(--line)] shadow-[8px_8px_0_var(--shadow-ink)] animate-stamp-down">
         <Tape position="top-right" rotation={5} />
 
         {/* Brand & Flatline + Sticker */}

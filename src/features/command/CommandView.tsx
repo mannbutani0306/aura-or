@@ -955,6 +955,7 @@ export function CommandView({
           emergencies={emergencies}
           simSpeed={simSpeed}
           currentTime={currentTime}
+          slaBenchmarkMin={slaBenchmarkMin}
           onSelectDispatch={(d) => {
             const amb = ambulances.find((a) => a.id === d.ambulanceId);
             if (amb) setSelectedUnit(amb);
