@@ -298,6 +298,8 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
         etaMin,
         weightedMin: +(etaMin * em.weight).toFixed(1),
         weight: em.weight,
+        slaBreach: slaBenchmarkMin !== null && etaMin > slaBenchmarkMin,
+        alsMismatch: em.requiresAls && newAmb.type !== 'ALS',
         path: route.path,
       };
       return [...filtered, newAssign];
@@ -764,7 +766,7 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="w-2 h-2 border-t-2 border-r-2 border-[var(--critical)]" />
-                  <span>&gt;10m SLA breach</span>
+                  <span>{slaBenchmarkMin === null ? 'SLA unavailable' : `>${slaBenchmarkMin}m SLA breach`}</span>
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="text-[var(--critical)] font-serif text-xs">&empty;</span>
@@ -865,6 +867,32 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
                             strokeLinecap="round"
                             className="ribbon-path"
                           />
+                          {assign.slaBreach && (
+                            <line
+                              x1="50%"
+                              x2="50%"
+                              y1={`${(y1Pct + y2Pct) / 2 - 2}%`}
+                              y2={`${(y1Pct + y2Pct) / 2 + 2}%`}
+                              stroke="var(--critical)"
+                              strokeWidth="4"
+                              aria-label="SLA breach"
+                            />
+                          )}
+                          {assign.alsMismatch && (
+                            <text
+                              x="50%"
+                              y={`${(y1Pct + y2Pct) / 2 - 2}%`}
+                              textAnchor="middle"
+                              fill="var(--critical)"
+                              stroke="var(--surface-raised)"
+                              strokeWidth="3"
+                              paintOrder="stroke"
+                              fontSize="10"
+                              fontFamily="var(--font-mono)"
+                              fontWeight="700"
+                              aria-label="BLS assigned to ALS-required call"
+                            >BLS·C</text>
+                          )}
                         </g>
                       );
                     })}
@@ -875,6 +903,7 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
                 <div className="flex flex-col justify-around gap-4 z-10 w-36 shrink-0 ml-auto">
                   {pendingEmergencies.map((em) => {
                     const assignedAmbId = assignedPairMap.get(em.id);
+                    const activeAssignment = currentAssignments.find((assignment) => assignment.emergencyId === em.id);
                     const isMatched = Boolean(assignedAmbId);
 
                     return (
@@ -895,7 +924,9 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
                         </div>
 
                         {assignedAmbId ? (
-                          <span className="font-mono-numbers text-[10px] text-[var(--unit-available)] font-semibold">
+                          <span className="flex items-center gap-1 font-mono-numbers text-[10px] text-[var(--unit-available)] font-semibold">
+                            {activeAssignment?.slaBreach && <span className="text-[var(--critical)]" aria-label="SLA breach">!</span>}
+                            {activeAssignment?.alsMismatch && <span className="text-[var(--critical)]" aria-label="ALS mismatch">BLS·C</span>}
                             &larr; {assignedAmbId}
                           </span>
                         ) : (

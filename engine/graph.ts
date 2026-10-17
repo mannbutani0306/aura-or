@@ -541,7 +541,8 @@ export function yenKShortestPaths(
  * - If zone_i == zone_j:
  *     t(i,j) = localMin of that zone (default 2.0)
  * 
- * Infeasible pairs (e.g. ALS required by call but unit is BLS) are flagged with feasibility=false.
+ * This matrix represents road reachability only. Policy and response-cap feasibility
+ * are applied by buildCostMatrix in the allocation model.
  */
 export function buildTravelMatrix(
   units: Ambulance[],
@@ -582,17 +583,7 @@ export function buildTravelMatrix(
       const cZone = zoneMap.get(call.zoneId);
       const cLocalMin = cZone?.localMin ?? 2.0;
 
-      // 1. Check capability feasibility (ALS requirement)
-      if (call.requiresAls && unit.type !== 'ALS') {
-        feasibility[aId][eId] = false;
-        travelTimes[aId][eId] = null;
-        costs[aId][eId] = null;
-        paths[aId][eId] = [];
-        rawTimes[aId][eId] = Infinity;
-        continue;
-      }
-
-      // 2. Compute travel time via graph shortest path
+      // Compute travel time via graph shortest path.
       let t: number;
       let path: string[];
 
@@ -628,12 +619,9 @@ export function buildTravelMatrix(
         rawTimes[aId][eId] = Infinity;
       } else {
         const roundedTime = Number(t.toFixed(1));
-        const weight = call.weight || (call.priority === 'Critical' ? 5 : call.priority === 'High' ? 3 : call.priority === 'Medium' ? 2 : 1);
-        const weightedCost = Number((roundedTime * weight).toFixed(1));
-
         feasibility[aId][eId] = true;
         travelTimes[aId][eId] = roundedTime;
-        costs[aId][eId] = weightedCost;
+        costs[aId][eId] = roundedTime;
         paths[aId][eId] = path;
         rawTimes[aId][eId] = roundedTime;
       }

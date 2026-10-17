@@ -122,28 +122,120 @@ export function solveHungarian(
   return { cost: -v[0], assignment: result };
 }
 
+export interface CostMatrixEntry {
+  readonly etaMin: number;
+  readonly weight: number;
+  readonly penaltyMin: number;
+  readonly cost: number;
+  readonly slaBreach: boolean;
+  readonly alsMismatch: boolean;
+}
+
+export interface AssignmentCostMatrix {
+  readonly costs: Record<string, Record<string, number | null>>;
+  readonly feasibility: Record<string, Record<string, boolean>>;
+  readonly entries: Record<string, Record<string, CostMatrixEntry | null>>;
+  readonly queueCosts: Record<string, number>;
+  readonly queueReasons: Record<string, SolveUnserved['reason']>;
+  readonly callWeights: Record<string, number>;
+  readonly paths: Record<string, Record<string, string[]>>;
+}
+
+export function buildCostMatrix(
+  units: Ambulance[],
+  calls: Emergency[],
+  matrix: TravelMatrix,
+  config: AppConfig,
+  mode: 'Weighted' | 'Plain'
+): AssignmentCostMatrix {
+  const availableUnits = units.filter((unit) => unit.status === 'Available').sort((left, right) => left.id.localeCompare(right.id));
+  const pendingCalls = calls.filter((call) => call.status === 'Pending').sort((left, right) => left.id.localeCompare(right.id));
+  const costs: AssignmentCostMatrix['costs'] = {};
+  const feasibility: AssignmentCostMatrix['feasibility'] = {};
+  const entries: AssignmentCostMatrix['entries'] = {};
+  const queueCosts: Record<string, number> = {};
+  const queueReasons: Record<string, SolveUnserved['reason']> = {};
+  const callWeights: Record<string, number> = {};
+
+  for (const unit of availableUnits) {
+    costs[unit.id] = {};
+    feasibility[unit.id] = {};
+    entries[unit.id] = {};
+  }
+
+  for (const call of pendingCalls) {
+    const weight = mode === 'Plain' ? 1 : (call.weight || 1);
+    const requiresAls = call.priority === 'Critical' && call.requiresAls;
+    const hasAvailableAls = availableUnits.some((unit) => unit.type === 'ALS');
+    let reachableEligiblePair = false;
+    let overCapPair = false;
+    let hasFeasiblePair = false;
+    callWeights[call.id] = weight;
+    queueCosts[call.id] = weight * config.unserved_min;
+
+    for (const unit of availableUnits) {
+      const travelTime = matrix.rawTimes[unit.id]?.[call.id] ?? Infinity;
+      const reachable = Number.isFinite(travelTime);
+      const alsMismatch = requiresAls && unit.type !== 'ALS';
+      const policyBlocked = config.als_policy === 'hard' && alsMismatch;
+      const withinCap = config.max_response_min === null || travelTime <= config.max_response_min;
+      const isFeasible = reachable && !policyBlocked && withinCap;
+
+      if (reachable && !policyBlocked) reachableEligiblePair = true;
+      if (reachable && !policyBlocked && !withinCap) overCapPair = true;
+
+      if (!isFeasible) {
+        costs[unit.id][call.id] = null;
+        feasibility[unit.id][call.id] = false;
+        entries[unit.id][call.id] = null;
+        continue;
+      }
+
+      const penaltyMin = config.als_policy === 'penalty' && alsMismatch ? config.als_penalty_min : 0;
+      const cost = weight * (travelTime + penaltyMin);
+      costs[unit.id][call.id] = cost;
+      feasibility[unit.id][call.id] = true;
+      entries[unit.id][call.id] = {
+        etaMin: travelTime,
+        weight,
+        penaltyMin,
+        cost,
+        slaBreach: travelTime > config.sla_min,
+        alsMismatch: config.als_policy === 'penalty' && alsMismatch,
+      };
+      hasFeasiblePair = true;
+    }
+
+    if (hasFeasiblePair) queueReasons[call.id] = 'Exhausted';
+    else if (config.als_policy === 'hard' && requiresAls && !hasAvailableAls) queueReasons[call.id] = 'No ALS unit';
+    else if (overCapPair) queueReasons[call.id] = 'Over cap';
+    else if (!reachableEligiblePair) queueReasons[call.id] = 'No Route';
+    else queueReasons[call.id] = 'Exhausted';
+  }
+
+  return { costs, feasibility, entries, queueCosts, queueReasons, callWeights, paths: matrix.paths };
+}
+
 /**
  * Calculates standardized performance summary metrics across dispatch methods
  */
 export function calculateMetrics(
-  assignments: { ambulanceId: string; emergencyId: string; etaMin: number; weight: number }[],
+  assignments: Pick<SolveAssignment, 'ambulanceId' | 'emergencyId' | 'etaMin' | 'weight' | 'weightedMin' | 'slaBreach'>[],
   calls: Emergency[],
   availableUnitsCount: number,
-  unservedPenaltyQ: number,
-  slaMin: number = DEFAULT_CONFIG.sla_min
+  costMatrix: AssignmentCostMatrix
 ): PerformanceSummary {
   const servedCount = assignments.length;
   const queuedCount = calls.length - servedCount;
 
-  const assignedWeighted = assignments.reduce((acc, a) => acc + a.etaMin * a.weight, 0);
+  const assignedWeighted = assignments.reduce((total, assignment) => total + assignment.weightedMin, 0);
 
-  // Unserved calls contribute w_j * Q
   const assignedCallIds = new Set(assignments.map((a) => a.emergencyId));
   const queuedWeighted = calls
     .filter((c) => !assignedCallIds.has(c.id))
-    .reduce((acc, c) => acc + (c.weight || 1) * unservedPenaltyQ, 0);
+    .reduce((total, call) => total + (costMatrix.queueCosts[call.id] ?? 0), 0);
 
-  const totalWeightedMin = Number((assignedWeighted + queuedWeighted).toFixed(1));
+  const totalWeightedMin = Number((assignedWeighted + queuedWeighted).toFixed(6));
 
   const totalRawMin = assignments.reduce((acc, a) => acc + a.etaMin, 0);
   const avgResponseMin = servedCount > 0 ? Number((totalRawMin / servedCount).toFixed(1)) : 0;
@@ -161,7 +253,8 @@ export function calculateMetrics(
     ? Number(Math.max(...assignments.map((a) => a.etaMin)).toFixed(1))
     : 0;
 
-  const slaHitsCount = assignments.filter((a) => a.etaMin <= slaMin).length;
+  const breachesCount = assignments.filter((assignment) => assignment.slaBreach).length;
+  const slaHitsCount = servedCount - breachesCount;
   const utilization = availableUnitsCount > 0 ? Number((servedCount / availableUnitsCount).toFixed(2)) : 0;
 
   return {
@@ -172,6 +265,7 @@ export function calculateMetrics(
     criticalAvgMin,
     worstResponseMin,
     slaHitsCount,
+    breachesCount,
     utilization,
   };
 }
@@ -183,42 +277,38 @@ export function calculateMetrics(
 export function runFcfsBaseline(
   units: Ambulance[],
   calls: Emergency[],
-  matrix: TravelMatrix,
-  mode: 'Weighted' | 'Plain',
-  penaltyQ: number,
-  slaMin: number
+  costMatrix: AssignmentCostMatrix
 ): PerformanceSummary {
-  const sortedCalls = [...calls].sort((a, b) => a.requestedAt - b.requestedAt);
-  const freeUnits = new Set(units.map((u) => u.id));
-  const assignments: { ambulanceId: string; emergencyId: string; etaMin: number; weight: number }[] = [];
+  const sortedCalls = [...calls].sort((a, b) => a.requestedAt - b.requestedAt || a.id.localeCompare(b.id));
+  const freeUnits = new Set(units.filter((unit) => unit.status === 'Available').map((unit) => unit.id).sort());
+  const assignments: Pick<SolveAssignment, 'ambulanceId' | 'emergencyId' | 'etaMin' | 'weight' | 'weightedMin' | 'slaBreach'>[] = [];
 
   for (const call of sortedCalls) {
     let bestUnitId: string | null = null;
-    let minTime = Infinity;
+    let bestEntry: CostMatrixEntry | null = null;
 
     for (const ambId of freeUnits) {
-      if (matrix.feasibility[ambId]?.[call.id]) {
-        const t = matrix.rawTimes[ambId][call.id];
-        if (t < minTime) {
-          minTime = t;
+      const entry = costMatrix.entries[ambId]?.[call.id] ?? null;
+      if (entry && (!bestEntry || entry.cost < bestEntry.cost || (entry.cost === bestEntry.cost && ambId < (bestUnitId ?? ambId)))) {
+          bestEntry = entry;
           bestUnitId = ambId;
-        }
       }
     }
 
-    if (bestUnitId !== null && minTime !== Infinity) {
-      const weight = mode === 'Plain' ? 1 : (call.weight || 1);
+    if (bestUnitId !== null && bestEntry) {
       assignments.push({
         ambulanceId: bestUnitId,
         emergencyId: call.id,
-        etaMin: minTime,
-        weight,
+        etaMin: bestEntry.etaMin,
+        weight: bestEntry.weight,
+        weightedMin: bestEntry.cost,
+        slaBreach: bestEntry.slaBreach,
       });
       freeUnits.delete(bestUnitId);
     }
   }
 
-  return calculateMetrics(assignments, calls, units.length, penaltyQ, slaMin);
+  return calculateMetrics(assignments, calls, units.length, costMatrix);
 }
 
 /**
@@ -228,48 +318,44 @@ export function runFcfsBaseline(
 export function runPriorityGreedyBaseline(
   units: Ambulance[],
   calls: Emergency[],
-  matrix: TravelMatrix,
-  mode: 'Weighted' | 'Plain',
-  penaltyQ: number,
-  slaMin: number
+  costMatrix: AssignmentCostMatrix
 ): PerformanceSummary {
   const priorityRank: Record<string, number> = { Critical: 4, High: 3, Medium: 2, Low: 1 };
   const sortedCalls = [...calls].sort((a, b) => {
     const diff = (priorityRank[b.priority] || 0) - (priorityRank[a.priority] || 0);
     if (diff !== 0) return diff;
-    return a.requestedAt - b.requestedAt;
+    return a.requestedAt - b.requestedAt || a.id.localeCompare(b.id);
   });
 
-  const freeUnits = new Set(units.map((u) => u.id));
-  const assignments: { ambulanceId: string; emergencyId: string; etaMin: number; weight: number }[] = [];
+  const freeUnits = new Set(units.filter((unit) => unit.status === 'Available').map((unit) => unit.id).sort());
+  const assignments: Pick<SolveAssignment, 'ambulanceId' | 'emergencyId' | 'etaMin' | 'weight' | 'weightedMin' | 'slaBreach'>[] = [];
 
   for (const call of sortedCalls) {
     let bestUnitId: string | null = null;
-    let minTime = Infinity;
+    let bestEntry: CostMatrixEntry | null = null;
 
     for (const ambId of freeUnits) {
-      if (matrix.feasibility[ambId]?.[call.id]) {
-        const t = matrix.rawTimes[ambId][call.id];
-        if (t < minTime) {
-          minTime = t;
-          bestUnitId = ambId;
-        }
+      const entry = costMatrix.entries[ambId]?.[call.id] ?? null;
+      if (entry && (!bestEntry || entry.cost < bestEntry.cost || (entry.cost === bestEntry.cost && ambId < (bestUnitId ?? ambId)))) {
+        bestEntry = entry;
+        bestUnitId = ambId;
       }
     }
 
-    if (bestUnitId !== null && minTime !== Infinity) {
-      const weight = mode === 'Plain' ? 1 : (call.weight || 1);
+    if (bestUnitId !== null && bestEntry) {
       assignments.push({
         ambulanceId: bestUnitId,
         emergencyId: call.id,
-        etaMin: minTime,
-        weight,
+        etaMin: bestEntry.etaMin,
+        weight: bestEntry.weight,
+        weightedMin: bestEntry.cost,
+        slaBreach: bestEntry.slaBreach,
       });
       freeUnits.delete(bestUnitId);
     }
   }
 
-  return calculateMetrics(assignments, calls, units.length, penaltyQ, slaMin);
+  return calculateMetrics(assignments, calls, units.length, costMatrix);
 }
 
 /**
@@ -285,256 +371,141 @@ export async function solveFleetAllocation(
 ): Promise<SolveResponse> {
   const t0 = performance.now();
   const highs = await getHighsInstance();
-
-  const availableUnits = units.filter((u) => u.status === 'Available');
-  const pendingCalls = calls.filter((c) => c.status === 'Pending');
-
-  const unservedPenaltyQ = config.unserved_min;
-  const slaMin = config.sla_min;
-
-  // 1. Build authoritative Travel Time Matrix from the Road Graph
-  const matrix = buildTravelMatrix(availableUnits, pendingCalls, zones, edges);
+  const availableUnits = units.filter((unit) => unit.status === 'Available').sort((left, right) => left.id.localeCompare(right.id));
+  const pendingCalls = calls.filter((call) => call.status === 'Pending').sort((left, right) => left.id.localeCompare(right.id));
+  const travelMatrix = buildTravelMatrix(availableUnits, pendingCalls, zones, edges);
+  const costMatrix = buildCostMatrix(availableUnits, pendingCalls, travelMatrix, config, mode);
+  const responseMatrix = {
+    ambulanceIds: travelMatrix.ambulanceIds,
+    emergencyIds: travelMatrix.emergencyIds,
+    travelTimes: travelMatrix.travelTimes,
+    costs: costMatrix.costs,
+    feasibility: costMatrix.feasibility,
+    paths: travelMatrix.paths,
+  };
+  const fcfsMetrics = runFcfsBaseline(availableUnits, pendingCalls, costMatrix);
+  const greedyMetrics = runPriorityGreedyBaseline(availableUnits, pendingCalls, costMatrix);
 
   if (availableUnits.length === 0 || pendingCalls.length === 0) {
-    const emptySummary: PerformanceSummary = {
-      served: 0,
-      queued: pendingCalls.length,
-      totalWeightedMin: pendingCalls.reduce((s, c) => s + (mode === 'Plain' ? 1 : c.weight) * unservedPenaltyQ, 0),
-      avgResponseMin: 0,
-      criticalAvgMin: 0,
-      worstResponseMin: 0,
-      slaHitsCount: 0,
-      utilization: 0,
-    };
-
+    const emptyMetrics = calculateMetrics([], pendingCalls, availableUnits.length, costMatrix);
     return {
       status: 'Optimal',
-      objective: emptySummary.totalWeightedMin,
-      crossCheck: { value: emptySummary.totalWeightedMin, ok: true, method: 'Hungarian' },
+      objective: emptyMetrics.totalWeightedMin,
+      crossCheck: { value: emptyMetrics.totalWeightedMin, ok: true, method: 'Hungarian' },
       engine: ENGINE_NAME,
       engineVersion: ENGINE_VERSION,
       solveMs: Math.round(performance.now() - t0),
       mode,
-      matrix: {
-        ambulanceIds: matrix.ambulanceIds,
-        emergencyIds: matrix.emergencyIds,
-        travelTimes: matrix.travelTimes,
-        costs: matrix.costs,
-        feasibility: matrix.feasibility,
-        paths: matrix.paths,
-      },
+      matrix: responseMatrix,
       assignments: [],
-      unserved: pendingCalls.map((c) => ({ emergencyId: c.id, reason: 'Exhausted' })),
-      baselines: { fcfs: emptySummary, greedy: emptySummary },
-      metrics: emptySummary,
+      unserved: pendingCalls.map((call) => ({ emergencyId: call.id, reason: costMatrix.queueReasons[call.id] })),
+      baselines: { fcfs: fcfsMetrics, greedy: greedyMetrics },
+      metrics: emptyMetrics,
     };
   }
 
-  // 2. Build HiGHS LP formulation
-  // Variables: x_i_j for feasible pairs, u_j for each call
   const lpLines: string[] = ['Minimize', ' obj:'];
-  const objTerms: string[] = [];
-
-  const varNames: string[] = [];
-  const feasiblePairs: Array<{
-    ambId: string;
-    emId: string;
-    varName: string;
-    cost: number;
-    rawTime: number;
-    weight: number;
-  }> = [];
-
-  const callVarMap = new Map<string, string[]>();
-  const unitVarMap = new Map<string, string[]>();
-
-  pendingCalls.forEach((c) => callVarMap.set(c.id, []));
-  availableUnits.forEach((u) => unitVarMap.set(u.id, []));
+  const objectiveTerms: string[] = [];
+  const variableNames: string[] = [];
+  const feasiblePairs: Array<{ ambulanceId: string; emergencyId: string; variableName: string }> = [];
+  const callVariables = new Map<string, string[]>();
+  const unitVariables = new Map<string, string[]>();
+  pendingCalls.forEach((call) => callVariables.set(call.id, []));
+  availableUnits.forEach((unit) => unitVariables.set(unit.id, []));
 
   for (const unit of availableUnits) {
     for (const call of pendingCalls) {
-      if (matrix.feasibility[unit.id]?.[call.id]) {
-        const varName = `x_${unit.id}_${call.id}`;
-        varNames.push(varName);
-
-        const weight = mode === 'Plain' ? 1 : (call.weight || 1);
-        const t = matrix.rawTimes[unit.id][call.id];
-        const cost = weight * t;
-
-        objTerms.push(` + ${cost.toFixed(4)} ${varName}`);
-        feasiblePairs.push({
-          ambId: unit.id,
-          emId: call.id,
-          varName,
-          cost,
-          rawTime: t,
-          weight,
-        });
-
-        callVarMap.get(call.id)!.push(varName);
-        unitVarMap.get(unit.id)!.push(varName);
-      }
+      if (!costMatrix.feasibility[unit.id]?.[call.id]) continue;
+      const variableName = `x_${unit.id}_${call.id}`;
+      variableNames.push(variableName);
+      objectiveTerms.push(` + ${String(costMatrix.costs[unit.id][call.id])} ${variableName}`);
+      feasiblePairs.push({ ambulanceId: unit.id, emergencyId: call.id, variableName });
+      callVariables.get(call.id)!.push(variableName);
+      unitVariables.get(unit.id)!.push(variableName);
     }
   }
-
-  // Add penalty terms for unserved calls u_j
   for (const call of pendingCalls) {
-    const uVar = `u_${call.id}`;
-    varNames.push(uVar);
-    const weight = mode === 'Plain' ? 1 : (call.weight || 1);
-    const cost = weight * unservedPenaltyQ;
-    objTerms.push(` + ${cost.toFixed(4)} ${uVar}`);
+    const variableName = `u_${call.id}`;
+    variableNames.push(variableName);
+    objectiveTerms.push(` + ${String(costMatrix.queueCosts[call.id])} ${variableName}`);
   }
-
-  lpLines.push(objTerms.join(''));
+  lpLines.push(objectiveTerms.join(''));
   lpLines.push('Subject To');
-
-  // Constraint 1: Every call j must either be assigned or queued
-  // Σ_i x_ij + u_j = 1
   for (const call of pendingCalls) {
-    const incomingVars = callVarMap.get(call.id) || [];
-    const lhs = [...incomingVars, `u_${call.id}`].join(' + ');
-    lpLines.push(` c_call_${call.id}: ${lhs} = 1`);
+    lpLines.push(` c_call_${call.id}: ${[...(callVariables.get(call.id) || []), `u_${call.id}`].join(' + ')} = 1`);
   }
-
-  // Constraint 2: Every unit i can serve at most 1 call
-  // Σ_j x_ij ≤ 1
   for (const unit of availableUnits) {
-    const outgoingVars = unitVarMap.get(unit.id) || [];
-    if (outgoingVars.length > 0) {
-      lpLines.push(` c_unit_${unit.id}: ${outgoingVars.join(' + ')} <= 1`);
-    }
+    const variables = unitVariables.get(unit.id) || [];
+    if (variables.length > 0) lpLines.push(` c_unit_${unit.id}: ${variables.join(' + ')} <= 1`);
   }
+  lpLines.push('Binary', ...variableNames.map((name) => ` ${name}`), 'End');
 
-  lpLines.push('Binary');
-  varNames.forEach((v) => lpLines.push(` ${v}`));
-  lpLines.push('End');
-
-  const lpString = lpLines.join('\n');
-
-  // 3. Solve with HiGHS WASM
-  const sol = highs.solve(lpString);
-  const status = sol.Status === 'Optimal' ? 'Optimal' : sol.Status === 'Infeasible' ? 'Infeasible' : 'Suboptimal';
-  const highsObjective = sol.ObjectiveValue != null ? Number(sol.ObjectiveValue.toFixed(2)) : 0;
-
-  // Extract assignments from solution
+  const solution = highs.solve(lpLines.join('\n'));
+  const status = solution.Status === 'Optimal' ? 'Optimal' : solution.Status === 'Infeasible' ? 'Infeasible' : 'Suboptimal';
+  const highsObjective = Number(solution.ObjectiveValue ?? 0);
   const assignments: SolveAssignment[] = [];
   const assignedCallIds = new Set<string>();
 
   for (const pair of feasiblePairs) {
-    const col = sol.Columns?.[pair.varName];
-    if (col && col.Primal > 0.5) {
-      assignments.push({
-        ambulanceId: pair.ambId,
-        emergencyId: pair.emId,
-        etaMin: pair.rawTime,
-        weightedMin: Number((pair.rawTime * pair.weight).toFixed(1)),
-        weight: pair.weight,
-        path: matrix.paths[pair.ambId]?.[pair.emId] || [],
-      });
-      assignedCallIds.add(pair.emId);
+    const column = solution.Columns?.[pair.variableName];
+    if (!column || column.Primal <= 0.5) continue;
+    const entry = costMatrix.entries[pair.ambulanceId][pair.emergencyId]!;
+    assignments.push({
+      ambulanceId: pair.ambulanceId,
+      emergencyId: pair.emergencyId,
+      etaMin: entry.etaMin,
+      weightedMin: entry.cost,
+      weight: entry.weight,
+      slaBreach: entry.slaBreach,
+      alsMismatch: entry.alsMismatch,
+      path: travelMatrix.paths[pair.ambulanceId]?.[pair.emergencyId] || [],
+    });
+    assignedCallIds.add(pair.emergencyId);
+  }
+  const unserved: SolveUnserved[] = pendingCalls
+    .filter((call) => !assignedCallIds.has(call.id))
+    .map((call) => ({ emergencyId: call.id, reason: costMatrix.queueReasons[call.id] }));
+
+  const unitCount = availableUnits.length;
+  const callCount = pendingCalls.length;
+  const dimension = unitCount + callCount;
+  const forbiddenCost = Number.MAX_SAFE_INTEGER / 4;
+  const hungarianCosts = Array.from({ length: dimension }, () => new Array<number>(dimension).fill(0));
+  for (let unitIndex = 0; unitIndex < unitCount; unitIndex += 1) {
+    const unit = availableUnits[unitIndex];
+    for (let callIndex = 0; callIndex < callCount; callIndex += 1) {
+      const call = pendingCalls[callIndex];
+      hungarianCosts[unitIndex][callIndex] = costMatrix.feasibility[unit.id][call.id]
+        ? costMatrix.costs[unit.id][call.id]!
+        : forbiddenCost;
+    }
+  }
+  for (let callIndex = 0; callIndex < callCount; callIndex += 1) {
+    const queueRow = unitCount + callIndex;
+    for (let queuedCallIndex = 0; queuedCallIndex < callCount; queuedCallIndex += 1) {
+      hungarianCosts[queueRow][queuedCallIndex] = queuedCallIndex === callIndex
+        ? costMatrix.queueCosts[pendingCalls[queuedCallIndex].id]
+        : forbiddenCost;
     }
   }
 
-  // Determine unserved calls
-  const unserved: SolveUnserved[] = [];
-  for (const call of pendingCalls) {
-    if (!assignedCallIds.has(call.id)) {
-      const hasFeasible = availableUnits.some((u) => matrix.feasibility[u.id]?.[call.id]);
-      if (call.requiresAls && !availableUnits.some((u) => u.type === 'ALS')) {
-        unserved.push({ emergencyId: call.id, reason: 'No ALS' });
-      } else if (!hasFeasible) {
-        unserved.push({ emergencyId: call.id, reason: 'No Route' });
-      } else {
-        unserved.push({ emergencyId: call.id, reason: 'Exhausted' });
-      }
-    }
-  }
-
-  // 4. Independent Hungarian Cross-Check
-  // Setup square cost matrix of size (m + n) x (n + m)
-  const mUnits = availableUnits.length;
-  const nCalls = pendingCalls.length;
-  const dim = mUnits + nCalls;
-  const BIG_M = 1000000;
-
-  const costMatrix: number[][] = Array.from({ length: dim }, () => new Array(dim).fill(0));
-
-  for (let i = 0; i < mUnits; i++) {
-    const u = availableUnits[i];
-    for (let j = 0; j < nCalls; j++) {
-      const c = pendingCalls[j];
-      const weight = mode === 'Plain' ? 1 : (c.weight || 1);
-      if (matrix.feasibility[u.id]?.[c.id]) {
-        costMatrix[i][j] = weight * matrix.rawTimes[u.id][c.id];
-      } else {
-        costMatrix[i][j] = BIG_M;
-      }
-    }
-    // Unit i to idle slots (j >= nCalls): cost is 0
-    for (let j = nCalls; j < dim; j++) {
-      costMatrix[i][j] = 0;
-    }
-  }
-
-  for (let i = 0; i < nCalls; i++) {
-    const dummyRowIdx = mUnits + i;
-    for (let j = 0; j < nCalls; j++) {
-      const c = pendingCalls[j];
-      const weight = mode === 'Plain' ? 1 : (c.weight || 1);
-      costMatrix[dummyRowIdx][j] = weight * unservedPenaltyQ;
-    }
-    // Dummy queue unit to idle slots: cost is 0
-    for (let j = nCalls; j < dim; j++) {
-      costMatrix[dummyRowIdx][j] = 0;
-    }
-  }
-
-  const hungarianResult = solveHungarian(costMatrix);
-  const hungarianObjective = Number(hungarianResult.cost.toFixed(2));
-  const crossCheckOk = Math.abs(highsObjective - hungarianObjective) <= 0.05;
-
-  // 5. Run both Baselines for fair comparative benchmarks
-  const fcfsMetrics = runFcfsBaseline(availableUnits, pendingCalls, matrix, mode, unservedPenaltyQ, slaMin);
-  const greedyMetrics = runPriorityGreedyBaseline(availableUnits, pendingCalls, matrix, mode, unservedPenaltyQ, slaMin);
-
-  // 6. Optimal Metrics
-  const optimalMetrics = calculateMetrics(
-    assignments,
-    pendingCalls,
-    availableUnits.length,
-    unservedPenaltyQ,
-    slaMin
-  );
-
-  const solveMs = Math.round(performance.now() - t0);
+  const hungarianResult = solveHungarian(hungarianCosts);
+  const hungarianObjective = hungarianResult.cost;
+  const crossCheckOk = Math.abs(highsObjective - hungarianObjective) <= 1e-6;
+  const metrics = calculateMetrics(assignments, pendingCalls, availableUnits.length, costMatrix);
 
   return {
     status,
     objective: highsObjective,
-    crossCheck: {
-      value: hungarianObjective,
-      ok: crossCheckOk,
-      method: 'Hungarian',
-    },
+    crossCheck: { value: hungarianObjective, ok: crossCheckOk, method: 'Hungarian' },
     engine: ENGINE_NAME,
     engineVersion: ENGINE_VERSION,
-    solveMs,
+    solveMs: Math.round(performance.now() - t0),
     mode,
-    matrix: {
-      ambulanceIds: matrix.ambulanceIds,
-      emergencyIds: matrix.emergencyIds,
-      travelTimes: matrix.travelTimes,
-      costs: matrix.costs,
-      feasibility: matrix.feasibility,
-      paths: matrix.paths,
-    },
+    matrix: responseMatrix,
     assignments,
     unserved,
-    baselines: {
-      fcfs: fcfsMetrics,
-      greedy: greedyMetrics,
-    },
-    metrics: optimalMetrics,
+    baselines: { fcfs: fcfsMetrics, greedy: greedyMetrics },
+    metrics,
   };
 }

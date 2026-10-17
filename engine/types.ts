@@ -81,12 +81,14 @@ export interface SolveAssignment {
   etaMin: number;
   weightedMin: number;
   weight: number;
+  slaBreach: boolean;
+  alsMismatch: boolean;
   path: string[];
 }
 
 export interface SolveUnserved {
   emergencyId: string;
-  reason: 'Exhausted' | 'No ALS' | 'No Route';
+  reason: 'Exhausted' | 'No ALS unit' | 'No Route' | 'Over cap';
 }
 
 export interface PerformanceSummary {
@@ -97,6 +99,7 @@ export interface PerformanceSummary {
   criticalAvgMin: number;
   worstResponseMin: number;
   slaHitsCount: number;
+  breachesCount: number;
   utilization: number;
 }
 

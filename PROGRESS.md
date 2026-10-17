@@ -4,7 +4,7 @@
 
 - [x] STEP 1 — Split the Express application, routes, shared Supabase/fallback state, config reader, and simulation clock; validate POST bodies and centralize structured errors.
 - [x] STEP 2 — Unify AppConfig defaults/loading and correct area types.
-- [ ] STEP 3 — Apply ALS/SLA/cap costs consistently through HiGHS, Hungarian, and both baselines; add UI assignment markers/reasons.
+- [x] STEP 3 — Apply ALS/SLA/cap costs consistently through HiGHS, Hungarian, and both baselines; add UI assignment markers/reasons.
 - [ ] STEP 4 — Add the model and settings drawers with persisted, validated configuration.
 - [ ] STEP 5 — Build scenario presets, Guide 5×5 fixture, Lab UI, and verification/push.
 
@@ -22,3 +22,4 @@
 - The hidden /#/kit route remains available for design-system inspection, but it is not surfaced in the main navigation list.
 - Server refactor Step 1: all 16 original endpoint paths are registered in route modules; successful GET response keys were smoke-tested, invalid POST returned the structured validation envelope, lint passed, and the 52-case UI suite passed.
 - Step 2: live app_config maps to SLA 14.5, ALS penalty policy, penalty 6, unserved 60, no response cap, and service 8. A fresh-server non-persisting solve passed its HiGHS/Hungarian cross-check.
+- Step 3: routes were decoupled from ALS/SLA decision logic; `buildCostMatrix()` now owns penalty policy, response caps, queue penalties, queue reasons, and `slaBreach`/`alsMismatch` flags. HiGHS, Hungarian, FCFS, and priority-greedy all consume the same cost model, and matching panels surface assignment breaches and ALS mismatch markers.
