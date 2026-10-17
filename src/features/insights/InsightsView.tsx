@@ -23,6 +23,7 @@ interface InsightsViewProps {
 type FilterValue = 'All' | string;
 
 const sqlValue = (value: string) => `'${value.replaceAll("'", "''")}'`;
+const sqlIdentifier = (value: string) => `"${value.replaceAll('"', '""')}"`;
 
 function FilterChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
@@ -94,15 +95,28 @@ export function InsightsView({ onNavigate }: InsightsViewProps) {
   }, [filteredCases]);
 
   const whereSql = useMemo(() => {
+    const columns = cases[0]?.sourceColumns;
+    const districtColumn = sqlIdentifier(columns?.district ?? 'district');
+    const typeColumn = sqlIdentifier(columns?.callType ?? 'call_type');
     const predicates: string[] = [];
-    if (district !== 'All') predicates.push(`district = ${sqlValue(district)}`);
-    if (callType !== 'All') predicates.push(`call_type = ${sqlValue(callType)}`);
+    if (district !== 'All') predicates.push(`${districtColumn} = ${sqlValue(district)}`);
+    if (callType !== 'All') predicates.push(`${typeColumn} = ${sqlValue(callType)}`);
     return predicates.length ? ` WHERE ${predicates.join(' AND ')}` : '';
-  }, [district, callType]);
-  const responseSql = `SELECT id, response_sec, benchmark_sec FROM ems_cases${whereSql} ORDER BY response_sec;`;
-  const hourSql = `SELECT EXTRACT(HOUR FROM call_timestamp) AS hour, COUNT(*) AS calls, COUNT(*) FILTER (WHERE response_sec <= benchmark_sec) AS within_benchmark FROM ems_cases${whereSql} GROUP BY hour ORDER BY hour;`;
-  const triageSql = `SELECT triage, AVG(response_sec) AS avg_response_sec, MAX(response_sec) AS worst_response_sec, COUNT(*) FILTER (WHERE response_sec > benchmark_sec) AS breaches FROM ems_cases${whereSql} GROUP BY triage ORDER BY triage;`;
-  const typeSql = `SELECT call_type, COUNT(*) AS calls FROM ems_cases${whereSql} GROUP BY call_type ORDER BY calls DESC;`;
+  }, [cases, district, callType]);
+  const sourceColumns = cases[0]?.sourceColumns;
+  const idColumn = sqlIdentifier(sourceColumns?.id ?? 'id');
+  const responseColumn = sqlIdentifier(sourceColumns?.responseSec ?? 'response_sec');
+  const benchmarkColumn = sqlIdentifier(sourceColumns?.benchmarkSec ?? 'benchmark_sec');
+  const triageColumn = sqlIdentifier(sourceColumns?.triage ?? 'triage');
+  const callTypeColumn = sqlIdentifier(sourceColumns?.callType ?? 'call_type');
+  const hourColumn = sqlIdentifier(sourceColumns?.hour ?? 'call_timestamp');
+  const hourExpression = sourceColumns?.hourUsesTimestamp === false
+    ? `${hourColumn}::integer`
+    : `EXTRACT(HOUR FROM ${hourColumn})`;
+  const responseSql = `SELECT ${idColumn}, ${responseColumn}, ${benchmarkColumn} FROM ems_cases${whereSql} ORDER BY ${responseColumn};`;
+  const hourSql = `SELECT ${hourExpression} AS hour, COUNT(*) AS calls, COUNT(*) FILTER (WHERE ${responseColumn} <= ${benchmarkColumn}) AS within_benchmark FROM ems_cases${whereSql} GROUP BY hour ORDER BY hour;`;
+  const triageSql = `SELECT ${triageColumn}, AVG(${responseColumn}) AS avg_response_sec, MAX(${responseColumn}) AS worst_response_sec, COUNT(*) FILTER (WHERE ${responseColumn} > ${benchmarkColumn}) AS breaches FROM ems_cases${whereSql} GROUP BY ${triageColumn} ORDER BY ${triageColumn};`;
+  const typeSql = `SELECT ${callTypeColumn}, COUNT(*) AS calls FROM ems_cases${whereSql} GROUP BY ${callTypeColumn} ORDER BY calls DESC;`;
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 pb-16">

@@ -7,6 +7,7 @@ interface ConnectionChipProps {
   lastSyncedAt?: number | null;
   className?: string;
   onClick?: () => void;
+  compact?: boolean;
 }
 
 export function ConnectionChip({
@@ -15,6 +16,7 @@ export function ConnectionChip({
   lastSyncedAt,
   className = '',
   onClick,
+  compact = false,
 }: ConnectionChipProps) {
   const statusConfig: Record<
     ConnectionStatus,
@@ -59,7 +61,7 @@ export function ConnectionChip({
       } ${config.textClass} ${onClick ? 'cursor-pointer hover:-translate-y-0.5 active:translate-y-0.5' : 'cursor-default'} ${className}`}
     >
       <span className={`w-2 h-2 rounded-full border border-[var(--line)] ${config.dotClass}`} />
-      <span>{config.label}</span>
+      <span className={compact ? 'hidden sm:inline' : ''}>{config.label}</span>
     </button>
   );
 }

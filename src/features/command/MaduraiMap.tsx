@@ -91,7 +91,7 @@ export function MaduraiMap({
       // Discreet attribution in bottom right
       L.control
         .attribution({ position: 'bottomright', prefix: false })
-        .addAttribution('&copy; <a href="https://carto.com/">CARTO</a> &copy; OpenStreetMap')
+        .addAttribution('&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>')
         .addTo(map);
 
       mapInstanceRef.current = map;
@@ -112,13 +112,10 @@ export function MaduraiMap({
       map.removeLayer(tileLayerRef.current);
     }
 
-    const tileUrl =
-      theme === 'night'
-        ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-        : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+    const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
     const tiles = L.tileLayer(tileUrl, {
-      subdomains: 'abcd',
+      subdomains: 'abc',
       maxZoom: 19,
     });
 
@@ -432,7 +429,7 @@ export function MaduraiMap({
           filter: sepia(0.18) contrast(0.96) brightness(0.99);
         }
         .aura-map-night-filter .leaflet-tile-pane {
-          filter: brightness(0.92) contrast(1.12);
+          filter: invert(0.88) hue-rotate(180deg) saturate(0.45) brightness(0.78) contrast(1.1);
         }
 
         /* Tooltip styling */

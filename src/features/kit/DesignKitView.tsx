@@ -417,7 +417,7 @@ export function DesignKitView() {
         />
 
         <ErrorState
-          title="Telematics warning"
+          title="Connection warning"
           message="GPS coordinate feed degraded across Simmakkal bridge."
           retryLabel="Reconnect"
           onRetry={() => {}}
@@ -457,7 +457,7 @@ export function DesignKitView() {
           </p>
           <div className="p-4 rounded-[14px] bg-[var(--surface)] border-2 border-[var(--line)] shadow-[3px_3px_0_var(--shadow-ink)] flex flex-col gap-2">
             <span className="font-mono-numbers text-xs font-bold uppercase text-[var(--ink)]">
-              AMB-01 Telematics Card
+              Ambulance record
             </span>
             <div className="flex items-center gap-2">
               <HangTag priority="Critical" id="C-101" size="sm" />

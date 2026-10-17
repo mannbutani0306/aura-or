@@ -7,7 +7,7 @@ import {
 } from '../types';
 import { DataSource, ConnectionStatus, EventLogRow } from './DataSource';
 import { supabase, hasSupabaseConfig } from './supabaseClient';
-import { SolveRequest, SolveResponse, executeDualSolver } from '../utils/solver';
+import type { SolveRequest, SolveResponse } from '../utils/solver';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
 export class SupabaseDataSource implements DataSource {
@@ -1093,6 +1093,7 @@ export class SupabaseDataSource implements DataSource {
     }
 
     // 3. Fallback: Direct in-memory HiGHS WASM + Hungarian solver
+    const { executeDualSolver } = await import('../utils/solver');
     return await executeDualSolver(
       this.ambulances,
       this.emergencies,

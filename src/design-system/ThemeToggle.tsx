@@ -30,9 +30,10 @@ interface ThemeToggleProps {
   theme?: ThemeMode;
   onToggle?: (nextTheme: ThemeMode) => void;
   className?: string;
+  compact?: boolean;
 }
 
-export function ThemeToggle({ theme: controlledTheme, onToggle, className = '' }: ThemeToggleProps) {
+export function ThemeToggle({ theme: controlledTheme, onToggle, className = '', compact = false }: ThemeToggleProps) {
   const [internalTheme, setInternalTheme] = useState<ThemeMode>(getInitialTheme);
   const activeTheme = controlledTheme ?? internalTheme;
 
@@ -66,7 +67,7 @@ export function ThemeToggle({ theme: controlledTheme, onToggle, className = '' }
         <span className="text-sm leading-none drop-shadow-xs">
           {isNight ? '🌙' : '☀️'}
         </span>
-        <span className="font-mono-numbers text-[10px] font-bold uppercase tracking-wider">
+        <span className={`font-mono-numbers text-[10px] font-bold uppercase tracking-wider ${compact ? 'hidden sm:inline' : ''}`}>
           {isNight ? 'Night' : 'Paper'}
         </span>
       </button>

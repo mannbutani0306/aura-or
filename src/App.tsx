@@ -32,12 +32,12 @@ import {
 import { isSoundEnabled, setSoundEnabled, playSoftAlertBeep } from './utils/audio';
 import { dataSource, ConnectionStatus, EventLogRow } from './data';
 import { CommandView } from './features/command/CommandView';
-import { DispatchView } from './features/dispatch/DispatchView';
-import { FleetView } from './features/fleet/FleetView';
-import { DesignKitView } from './features/kit/DesignKitView';
 
+const DispatchView = lazy(() => import('./features/dispatch/DispatchView').then((module) => ({ default: module.DispatchView })));
+const FleetView = lazy(() => import('./features/fleet/FleetView').then((module) => ({ default: module.FleetView })));
 const RoutesView = lazy(() => import('./features/routes/RoutesView').then((module) => ({ default: module.RoutesView })));
 const InsightsView = lazy(() => import('./features/insights/InsightsView').then((module) => ({ default: module.InsightsView })));
+const DesignKitView = lazy(() => import('./features/kit/DesignKitView').then((module) => ({ default: module.DesignKitView })));
 
 export type NavTabId = 'command' | 'dispatch' | 'fleet' | 'routes' | 'insights' | 'kit';
 
@@ -339,13 +339,13 @@ export default function App() {
       {showIntro && <FirstLoadIntro onComplete={handleIntroComplete} />}
 
       {/* 2. Top Header Bar (Desktop & Mobile) with Chunky Outline and Hard Offset Shadow */}
-      <header className="h-16 px-4 sm:px-6 border-b-2 border-[var(--line)] bg-[var(--surface-raised)] sticky top-0 z-30 flex items-center justify-between shrink-0 shadow-[0_2px_0_var(--shadow-ink)]">
+      <header className="min-h-16 h-auto min-w-0 px-3 sm:px-6 py-2 border-b-2 border-[var(--line)] bg-[var(--surface-raised)] sticky top-0 z-30 flex flex-wrap items-center justify-between gap-y-2 shrink-0 shadow-[0_2px_0_var(--shadow-ink)]">
         {/* Left: Brand Wordmark + Live Telematics Rhythm + Realtime Connection Chip */}
-        <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-4">
           <Wordmark size="md" onClick={() => handleNavigate('command')} />
-          <div className="h-5 w-[2px] bg-[var(--line)] opacity-30" />
-          <EcgStrip state={ecgState} showStatusLabel />
-          <ConnectionChip status={connStatus} roundTripMs={roundTripMs} lastSyncedAt={lastSyncedAt} />
+          <div className="hidden sm:block h-5 w-[2px] bg-[var(--line)] opacity-30" />
+          <EcgStrip className="hidden lg:inline-flex" state={ecgState} showStatusLabel />
+          <ConnectionChip status={connStatus} roundTripMs={roundTripMs} lastSyncedAt={lastSyncedAt} compact />
         </div>
 
         {/* Center: Desktop Navigation Dock (pills with 2px line and hard shadows) */}
@@ -375,15 +375,15 @@ export default function App() {
         </nav>
 
         {/* Right: Controls (Events, Pulse, provenance, sound, theme, search) */}
-        <div className="flex items-center gap-2">
+        <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
           <PulseControl />
           <ProvenancePopover />
           {/* Live Events Stream Button: icon + "Events" */}
-          <Tooltip content="Events">
+          <Tooltip content="Events" className="hidden sm:inline-flex">
             <button
               onClick={() => setIsEventsDrawerOpen(true)}
               aria-label="Events"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 border-[var(--line)] bg-[var(--surface-raised)] hover:bg-[var(--surface)] text-xs font-mono-numbers font-bold text-[var(--ink)] shadow-[2px_2px_0_var(--shadow-ink)] hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-none transition-all focus-ring cursor-pointer"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 border-[var(--line)] bg-[var(--surface-raised)] hover:bg-[var(--surface)] text-xs font-mono-numbers font-bold text-[var(--ink)] shadow-[2px_2px_0_var(--shadow-ink)] hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-none transition-all focus-ring cursor-pointer"
             >
               <span className="w-2 h-2 rounded-full bg-[var(--unit-available)] animate-pulse border border-[var(--line)]" />
               <span className="hidden sm:inline">Events</span>
@@ -392,7 +392,7 @@ export default function App() {
           </Tooltip>
 
           {/* Audio Toggle */}
-          <Tooltip content={soundActive ? 'Mute' : 'Sound'} shortcut="M">
+          <Tooltip content={soundActive ? 'Mute' : 'Sound'} shortcut="M" className="hidden sm:inline-flex">
             <button
               onClick={toggleSound}
               aria-label={soundActive ? 'Mute' : 'Sound'}
@@ -403,7 +403,7 @@ export default function App() {
           </Tooltip>
 
           {/* Theme Toggle */}
-          <ThemeToggle theme={theme} onToggle={setTheme} />
+          <ThemeToggle theme={theme} onToggle={setTheme} compact />
 
           {/* Command Palette Trigger: Search pill with Kbd ⌘K inside */}
           <Tooltip content="Search commands">
@@ -413,7 +413,7 @@ export default function App() {
               className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--surface-raised)] border-2 border-[var(--line)] hover:bg-[var(--surface)] shadow-[2px_2px_0_var(--shadow-ink)] hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-none transition-all duration-120 focus-ring cursor-pointer"
             >
               <IconSearch size={14} className="text-[var(--ink)]" />
-              <Kbd>⌘K</Kbd>
+              <Kbd className="hidden sm:inline-flex">⌘K</Kbd>
             </button>
           </Tooltip>
         </div>
@@ -447,11 +447,15 @@ export default function App() {
           )}
 
           {activeTab === 'dispatch' && (
-            <DispatchView onNavigate={handleNavigate} />
+            <Suspense fallback={<div role="status" className="rounded-[20px] border-2 border-[var(--line)] bg-[var(--surface-raised)] p-8 text-center font-mono-numbers text-xs uppercase tracking-widest text-[var(--ink-muted)]">Loading dispatch sheet…</div>}>
+              <DispatchView onNavigate={handleNavigate} />
+            </Suspense>
           )}
 
           {activeTab === 'fleet' && (
-            <FleetView onNavigate={handleNavigate} />
+            <Suspense fallback={<div role="status" className="rounded-[20px] border-2 border-[var(--line)] bg-[var(--surface-raised)] p-8 text-center font-mono-numbers text-xs uppercase tracking-widest text-[var(--ink-muted)]">Loading fleet sheet…</div>}>
+              <FleetView onNavigate={handleNavigate} />
+            </Suspense>
           )}
 
           {activeTab === 'routes' && (
@@ -467,7 +471,9 @@ export default function App() {
           )}
 
           {activeTab === 'kit' && (
-            <DesignKitView />
+            <Suspense fallback={<div role="status" className="rounded-[20px] border-2 border-[var(--line)] bg-[var(--surface-raised)] p-8 text-center font-mono-numbers text-xs uppercase tracking-widest text-[var(--ink-muted)]">Loading components…</div>}>
+              <DesignKitView />
+            </Suspense>
           )}
         </div>
       </main>

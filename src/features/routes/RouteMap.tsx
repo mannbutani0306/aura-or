@@ -48,7 +48,7 @@ export function RouteMap({
 
       L.control
         .attribution({ position: 'bottomright', prefix: false })
-        .addAttribution('&copy; <a href="https://carto.com/">CARTO</a> &copy; OpenStreetMap')
+        .addAttribution('&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>')
         .addTo(map);
 
       mapInstanceRef.current = map;
@@ -65,13 +65,10 @@ export function RouteMap({
       map.removeLayer(tileLayerRef.current);
     }
 
-    const tileUrl =
-      theme === 'night'
-        ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-        : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+    const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 
     const tiles = L.tileLayer(tileUrl, {
-      subdomains: 'abcd',
+      subdomains: 'abc',
       maxZoom: 19,
     });
 

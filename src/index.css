@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -236,6 +237,14 @@ a.pill:active {
     linear-gradient(to right, color-mix(in srgb, var(--ink) 5%, transparent) 1px, transparent 1px),
     linear-gradient(to bottom, color-mix(in srgb, var(--ink) 5%, transparent) 1px, transparent 1px);
   background-size: 24px 24px;
+}
+
+.aura-map-paper-filter .leaflet-tile-pane {
+  filter: sepia(0.18) contrast(0.96) brightness(0.99);
+}
+
+.aura-map-night-filter .leaflet-tile-pane {
+  filter: invert(0.88) hue-rotate(180deg) saturate(0.45) brightness(0.78) contrast(1.1);
 }
 
 /* Thin red/cream diagonal chevron stripe divider (ambulance livery) */

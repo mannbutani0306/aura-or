@@ -605,7 +605,7 @@ export function RoutesView({ onNavigate, theme = 'paper' }: RoutesViewProps) {
                   <span className="text-xl">🚑</span>
                   <div>
                     <div className="text-xs font-semibold text-[var(--ink)]">
-                      Vehicle Telemetry Simulator
+                      Route Replay
                     </div>
                     <div className="text-[10px] font-mono-numbers text-[var(--ink-muted)]">
                       Progress: {(vehicleProgress * 100).toFixed(0)}% · Remaining: {Math.max(0, (activeTravelTime * (1 - vehicleProgress))).toFixed(1)}m

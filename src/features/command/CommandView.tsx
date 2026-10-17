@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { lazy, Suspense, useState, useEffect, useMemo } from 'react';
 import {
   Zone,
   RoadEdge,
@@ -8,7 +8,6 @@ import {
   Dispatch,
 } from '../../types';
 import { dataSource, getSlaBenchmarkMinutes } from '../../data';
-import { MaduraiMap } from './MaduraiMap';
 import { LiveTimelineStrip } from './LiveTimelineStrip';
 import { CallsSlip } from './CallsSlip';
 import { UnitsSlip } from './UnitsSlip';
@@ -33,6 +32,8 @@ import {
 } from '../../design-system';
 import { ConnectionStatus } from '../../data/DataSource';
 import { EmergencyTableView } from '../fleet/EmergencyTableView';
+
+const MaduraiMap = lazy(() => import('./MaduraiMap').then((module) => ({ default: module.MaduraiMap })));
 
 interface CommandViewProps {
   onNavigate: (route: string) => void;
@@ -262,7 +263,8 @@ export function CommandView({
     <div className="relative h-[calc(100vh-4.5rem)] w-full overflow-hidden rounded-[28px] border-2 border-[var(--line)] bg-[var(--surface)] shadow-[8px_8px_0_var(--shadow-ink)]">
       {/* 1. Framed Leaflet Map Card */}
       <div className={`absolute inset-0 z-0 overflow-hidden rounded-[28px] border-2 border-[var(--line)] transition-all duration-300 ${connStatus === 'offline' ? 'grayscale opacity-60' : ''}`}>
-        <MaduraiMap
+        <Suspense fallback={<div role="status" className="h-full min-h-[480px] w-full bg-[var(--surface)] ecg-grid" aria-label="Loading map" />}>
+          <MaduraiMap
           zones={zones}
           roads={roads}
           ambulances={ambulances}
@@ -281,7 +283,8 @@ export function CommandView({
           onSelectZone={(z) => {
             setFlyTarget({ lat: z.lat, lng: z.lng, zoom: 15, timestamp: Date.now() });
           }}
-        />
+          />
+        </Suspense>
       </div>
 
       {/* Offline Status Warning Ribbon over Map */}

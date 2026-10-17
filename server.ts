@@ -6,6 +6,7 @@
 
 import 'dotenv/config';
 import express, { Request, Response } from 'express';
+import compression from 'compression';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
@@ -29,6 +30,7 @@ const isProd = process.env.NODE_ENV === 'production';
 // Support body parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+app.use(compression());
 
 // Supabase client initialization for server-side operations
 const SUPABASE_URL = (
@@ -1089,7 +1091,15 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.resolve(__dirname, 'dist');
-    app.use(express.static(distPath));
+    app.use(express.static(distPath, {
+      setHeaders: (res, assetPath) => {
+        if (assetPath.includes(`${path.sep}assets${path.sep}`)) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        } else if (assetPath.endsWith(`${path.sep}index.html`)) {
+          res.setHeader('Cache-Control', 'no-cache');
+        }
+      },
+    }));
     app.get('*', (_req: Request, res: Response) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });

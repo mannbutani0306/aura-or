@@ -1,5 +1,17 @@
 import { supabase } from './supabaseClient';
 
+export interface EmsSourceColumns {
+  readonly id: string;
+  readonly district: string;
+  readonly callType: string;
+  readonly triage: string;
+  readonly priority: string;
+  readonly responseSec: string;
+  readonly benchmarkSec: string;
+  readonly hour: string;
+  readonly hourUsesTimestamp: boolean;
+}
+
 export interface EmsCase {
   readonly id: string;
   readonly district: string;
@@ -9,6 +21,7 @@ export interface EmsCase {
   readonly responseSec: number;
   readonly benchmarkSec: number;
   readonly hour: number;
+  readonly sourceColumns: EmsSourceColumns;
 }
 
 export type EmsViewRow = Readonly<Record<string, unknown>>;
@@ -18,6 +31,16 @@ const pick = (row: Readonly<Record<string, unknown>>, keys: readonly string[]): 
     if (row[key] !== undefined && row[key] !== null) return row[key];
   }
   return undefined;
+};
+
+const requiredField = (
+  row: Readonly<Record<string, unknown>>,
+  keys: readonly string[],
+  label: string
+): string => {
+  const field = keys.find((key) => row[key] !== undefined && row[key] !== null);
+  if (!field) throw new Error(`EMS sample is missing its ${label} field`);
+  return field;
 };
 
 const requiredText = (
@@ -49,29 +72,56 @@ const normalizeCase = (value: unknown): EmsCase => {
   }
   const row = value as Readonly<Record<string, unknown>>;
   const explicitHour = pick(row, ['hour', 'hour_of_day', 'call_hour']);
+  const hourUsesTimestamp = explicitHour === undefined;
+  const hourField = requiredField(
+    row,
+    hourUsesTimestamp
+      ? ['call_timestamp', 'incident_time', 'call_datetime', 'created_at', 'timestamp']
+      : ['hour', 'hour_of_day', 'call_hour'],
+    hourUsesTimestamp ? 'call time' : 'hour'
+  );
   let hour: number;
   if (explicitHour !== undefined) {
     hour = requiredNumber(row, ['hour', 'hour_of_day', 'call_hour'], 'hour');
   } else {
     const timestamp = requiredText(
       row,
-      ['call_timestamp', 'incident_time', 'call_datetime', 'created_at', 'timestamp'],
+      [hourField],
       'call time'
     );
     hour = new Date(timestamp).getHours();
   }
   if (hour < 0 || hour > 23) throw new Error('EMS sample has an invalid hour field');
 
-  const triage = requiredText(row, ['triage', 'triage_level'], 'triage');
+  const triageFields = ['triage', 'triage_level', 'priority'] as const;
+  const callTypeFields = ['call_type', 'case_type', 'emergency_type', 'emergency_ift', 'type'] as const;
+  const responseFields = ['response_sec', 'response_seconds', 'response_time_sec'] as const;
+  const benchmarkFields = ['benchmark_sec', 'benchmark_seconds'] as const;
+  const priorityFields = ['priority', 'triage', 'triage_level'] as const;
+  const idFields = ['id', 'case_id'] as const;
+  const districtFields = ['district'] as const;
+  const triage = requiredText(row, triageFields, 'triage');
+  const sourceColumns: EmsSourceColumns = {
+    id: requiredField(row, idFields, 'case ID'),
+    district: requiredField(row, districtFields, 'district'),
+    callType: requiredField(row, callTypeFields, 'call type'),
+    triage: requiredField(row, triageFields, 'triage'),
+    priority: requiredField(row, priorityFields, 'priority'),
+    responseSec: requiredField(row, responseFields, 'response time'),
+    benchmarkSec: requiredField(row, benchmarkFields, 'benchmark'),
+    hour: hourField,
+    hourUsesTimestamp,
+  };
   return {
-    id: requiredText(row, ['id', 'case_id'], 'case ID'),
-    district: requiredText(row, ['district'], 'district'),
-    callType: requiredText(row, ['call_type', 'case_type', 'emergency_type', 'emergency_ift'], 'call type'),
+    id: requiredText(row, idFields, 'case ID'),
+    district: requiredText(row, districtFields, 'district'),
+    callType: requiredText(row, callTypeFields, 'call type'),
     triage,
-    priority: requiredText(row, ['priority', 'triage', 'triage_level'], 'priority'),
-    responseSec: requiredNumber(row, ['response_sec', 'response_seconds', 'response_time_sec'], 'response time'),
-    benchmarkSec: requiredNumber(row, ['benchmark_sec', 'benchmark_seconds'], 'benchmark'),
+    priority: requiredText(row, priorityFields, 'priority'),
+    responseSec: requiredNumber(row, responseFields, 'response time'),
+    benchmarkSec: requiredNumber(row, benchmarkFields, 'benchmark'),
     hour,
+    sourceColumns,
   };
 };
 
