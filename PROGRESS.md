@@ -5,8 +5,8 @@
 - [x] STEP 1 — Split the Express application, routes, shared Supabase/fallback state, config reader, and simulation clock; validate POST bodies and centralize structured errors.
 - [x] STEP 2 — Unify AppConfig defaults/loading and correct area types.
 - [x] STEP 3 — Apply ALS/SLA/cap costs consistently through HiGHS, Hungarian, and both baselines; add UI assignment markers/reasons.
-- [ ] STEP 4 — Add the model and settings drawers with persisted, validated configuration.
-- [ ] STEP 5 — Build scenario presets, Guide 5×5 fixture, Lab UI, and verification/push.
+- [x] STEP 4 — Add the model and settings drawers with persisted, validated configuration.
+- [x] STEP 5 — Build scenario presets, Guide 5×5 fixture, Lab UI, and verification/push.
 
 ## Notes
 

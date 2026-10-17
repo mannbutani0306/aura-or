@@ -2,6 +2,7 @@ import compression from 'compression';
 import express, { Express, Request, Response } from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { configRouter } from './routes/config';
 import { dispatchRouter } from './routes/dispatch';
 import { healthRouter } from './routes/health';
 import { pulseManager, pulseRouter } from './routes/pulse';
@@ -21,6 +22,7 @@ export function createApp(): Express {
   app.use(compression());
 
   app.use('/api', healthRouter);
+  app.use('/api', configRouter);
   app.use('/api', solveRouter);
   app.use('/api', routeRouter);
   app.use('/api', simRouter);

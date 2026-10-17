@@ -54,6 +54,14 @@ export const postSchemas = {
     mode: z.enum(['weighted', 'plain', 'Weighted', 'Plain']).optional(),
     matrixOverride: z.unknown().optional(),
   }).strict(),
+  config: z.object({
+    sla_min: z.number().finite().positive(),
+    als_policy: z.enum(['hard', 'penalty', 'off']),
+    als_penalty_min: z.number().finite().nonnegative(),
+    unserved_min: z.number().finite().positive(),
+    max_response_min: z.number().finite().positive().nullable(),
+    service_min: z.number().finite().positive(),
+  }).strict(),
   sim: z.object({ speed: z.coerce.number().refine((value) => [1, 2, 5, 10].includes(value)) }).strict(),
   pulse: z.object({
     running: z.boolean(),
