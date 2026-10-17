@@ -5,7 +5,7 @@
 - [x] STEP 1 — Add typed EMS/config repositories, sample-based Insights charts/filters/findings, SQL copy controls, and read `app_config.sla_min` in Command and Dispatch.
 - [x] STEP 2 — Add the Pulse server lifecycle/API and header control; label generated calls and explain provenance.
 - [x] STEP 3 — Implement reduced-motion-aware motion, responsive safeguards, accessibility, and performance improvements; verify all viewport sizes during Step 4 screenshot review.
-- [ ] STEP 4 — Screenshot/QA review and push are underway; the production Lighthouse performance gate remains below target.
+- [ ] STEP 4 — Screenshot/QA review and push are complete; the production Lighthouse performance gate remains below target.
 
 ## Notes
 
