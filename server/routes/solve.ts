@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { solveFleetAllocation } from '../../engine/assignment';
-import { Ambulance, Emergency, RoadEdge, Zone } from '../../engine/types';
+import { Ambulance, AppConfig, DEFAULT_CONFIG, Emergency, RoadEdge, Zone } from '../../engine/types';
 import { supabase, fallbackState } from '../services/supabase';
 import { loadConfig } from '../services/configService';
 import { asyncHandler } from '../services/http';
@@ -48,7 +48,7 @@ solveRouter.post('/solve', asyncHandler(async (request, response) => {
       name: String(row.name || row.id),
       lat: Number(row.lat),
       lng: Number(row.lng),
-      areaType: String(row.area_type || row.areatype || 'Commercial') as Zone['areaType'],
+      areaType: String(row.area_type || row.areatype || 'Urban') as Zone['areaType'],
       localMin: row.local_min != null ? Number(row.local_min) : row.localmin != null ? Number(row.localmin) : 2.0,
     }));
     edges = rowsOf(roadsResult.data).map((row) => ({
@@ -114,7 +114,7 @@ solveRouter.post('/solve-adhoc', asyncHandler(async (request, response) => {
     calls?: unknown[];
     zones?: unknown[];
     edges?: unknown[];
-    config?: Record<string, unknown>;
+    config?: Partial<AppConfig>;
     mode?: string;
   };
   const solution = await solveFleetAllocation(
@@ -122,7 +122,7 @@ solveRouter.post('/solve-adhoc', asyncHandler(async (request, response) => {
     (body.calls ?? []) as Emergency[],
     (body.zones ?? []) as Zone[],
     (body.edges ?? []) as RoadEdge[],
-    body.config ?? {},
+    { ...DEFAULT_CONFIG, ...body.config },
     normalizedMode(body.mode ?? 'weighted')
   );
   return response.json(solution);

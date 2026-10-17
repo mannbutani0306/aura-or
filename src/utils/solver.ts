@@ -13,6 +13,7 @@ import {
   Ambulance,
   Emergency,
   AppConfig,
+  DEFAULT_CONFIG,
   SolveAssignment,
   SolveUnserved,
   PerformanceSummary,
@@ -43,7 +44,7 @@ export async function executeDualSolver(
   roads: RoadEdge[],
   zones: Zone[],
   request: SolveRequest,
-  config: AppConfig = {}
+  config: AppConfig = DEFAULT_CONFIG
 ): Promise<SolveResponse> {
   return solveFleetAllocation(
     ambulances,

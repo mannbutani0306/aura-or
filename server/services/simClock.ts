@@ -1,7 +1,9 @@
 import { supabase, fallbackState, ServerDispatch } from './supabase';
+import { AppConfig, DEFAULT_CONFIG } from '../../engine/types';
+import { loadConfig } from './configService';
 
-const SERVICE_TIME_MIN = 8.0;
 let simSpeed = 1;
+let serviceTimeMin = DEFAULT_CONFIG.service_min;
 let simulationTimer: ReturnType<typeof setInterval> | null = null;
 
 export function getSimSpeed(): number {
@@ -13,7 +15,13 @@ export function setSimSpeed(speed: number): void {
 }
 
 export function getServiceTimeMin(): number {
-  return SERVICE_TIME_MIN;
+  return serviceTimeMin;
+}
+
+export async function refreshSimulationConfig(): Promise<AppConfig> {
+  const config = await loadConfig();
+  serviceTimeMin = config.service_min;
+  return config;
 }
 
 export async function advanceDispatch(id: string, nextStatus: 'OnScene' | 'Completed'): Promise<{ ok: true }> {
@@ -201,7 +209,7 @@ async function runSimulationTick(): Promise<void> {
     } else if (dispatch.status === 'OnScene') {
       const onSceneBase = arrivedAt || dispatchedAt;
       const onSceneSimMin = ((now - onSceneBase) / 1000) * (simSpeed / 1.0);
-      if (onSceneSimMin >= SERVICE_TIME_MIN) {
+      if (onSceneSimMin >= serviceTimeMin) {
         await advanceDispatch(dispatchId, 'Completed').catch((reason: unknown) => {
           console.warn(`Sim advance to Completed failed for ${dispatchId}:`, reason instanceof Error ? reason.message : String(reason));
         });
@@ -212,6 +220,9 @@ async function runSimulationTick(): Promise<void> {
 
 export function startSimulationClock(): void {
   if (simulationTimer) return;
+  void refreshSimulationConfig().catch((reason: unknown) => {
+    console.error('Simulation config load error:', reason);
+  });
   simulationTimer = setInterval(() => {
     void runSimulationTick().catch((reason: unknown) => {
       console.error('Simulation tick error:', reason);

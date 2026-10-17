@@ -3,7 +3,7 @@
  * Pure TypeScript types with zero UI / DOM dependencies.
  */
 
-export type AreaType = 'Hospital' | 'Commercial' | 'Suburban' | 'Transit' | 'Industrial' | 'Residential';
+export type AreaType = 'Urban' | 'Rural' | 'Tribal';
 
 export interface Zone {
   id: string;
@@ -48,10 +48,22 @@ export interface Emergency {
 }
 
 export interface AppConfig {
-  unserved_min?: number; // Q parameter (penalty for queued call)
-  sla_min?: number;      // Maximum target response minutes (e.g. 10.0 min)
-  [key: string]: unknown;
+  sla_min: number;
+  als_policy: 'hard' | 'penalty' | 'off';
+  als_penalty_min: number;
+  unserved_min: number;
+  max_response_min: number | null;
+  service_min: number;
 }
+
+export const DEFAULT_CONFIG: Readonly<AppConfig> = Object.freeze({
+  sla_min: 14.5,
+  als_policy: 'penalty',
+  als_penalty_min: 6,
+  unserved_min: 60,
+  max_response_min: null,
+  service_min: 8,
+});
 
 export interface TravelMatrix {
   ambulanceIds: string[];

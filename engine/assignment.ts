@@ -28,6 +28,7 @@ import {
   Ambulance,
   Emergency,
   AppConfig,
+  DEFAULT_CONFIG,
   TravelMatrix,
   SolveAssignment,
   SolveUnserved,
@@ -129,7 +130,7 @@ export function calculateMetrics(
   calls: Emergency[],
   availableUnitsCount: number,
   unservedPenaltyQ: number,
-  slaMin: number = 10.0
+  slaMin: number = DEFAULT_CONFIG.sla_min
 ): PerformanceSummary {
   const servedCount = assignments.length;
   const queuedCount = calls.length - servedCount;
@@ -279,7 +280,7 @@ export async function solveFleetAllocation(
   calls: Emergency[],
   zones: Zone[],
   edges: RoadEdge[],
-  config: AppConfig = {},
+  config: AppConfig = DEFAULT_CONFIG,
   mode: 'Weighted' | 'Plain' = 'Weighted'
 ): Promise<SolveResponse> {
   const t0 = performance.now();
@@ -288,8 +289,8 @@ export async function solveFleetAllocation(
   const availableUnits = units.filter((u) => u.status === 'Available');
   const pendingCalls = calls.filter((c) => c.status === 'Pending');
 
-  const unservedPenaltyQ = Number(config.unserved_min ?? 60.0);
-  const slaMin = Number(config.sla_min ?? 10.0);
+  const unservedPenaltyQ = config.unserved_min;
+  const slaMin = config.sla_min;
 
   // 1. Build authoritative Travel Time Matrix from the Road Graph
   const matrix = buildTravelMatrix(availableUnits, pendingCalls, zones, edges);

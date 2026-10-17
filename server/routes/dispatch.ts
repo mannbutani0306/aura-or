@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { asyncHandler, HttpError, postSchemas, validateBody } from '../services/http';
 import { cancelDispatch, advanceDispatch } from '../services/simClock';
 import { ServerDispatch, supabase, fallbackState } from '../services/supabase';
+import { loadConfig } from '../services/configService';
 
 export const dispatchRouter = Router();
 
@@ -26,6 +27,7 @@ const ambulanceIdOf = (item: DispatchInput) => String(item.ambulance_id || item.
 
 dispatchRouter.post('/dispatch', validateBody(postSchemas.dispatch), asyncHandler(async (request, response) => {
   const { items, runId } = request.body as { items: DispatchInput[]; runId?: string | null };
+  let configuredSlaMin: number | null = null;
   if (supabase) {
     try {
       const rpcResult = await supabase.rpc('dispatch_batch', { p_items: items, p_run_id: runId || null });
@@ -33,6 +35,8 @@ dispatchRouter.post('/dispatch', validateBody(postSchemas.dispatch), asyncHandle
     } catch {
       // Continue through the table-validation path if the RPC is unavailable.
     }
+
+    configuredSlaMin = (await loadConfig()).sla_min;
 
     const ambulanceIds = items.map(ambulanceIdOf);
     const emergencyIds = items.map(emergencyIdOf);
@@ -59,7 +63,7 @@ dispatchRouter.post('/dispatch', validateBody(postSchemas.dispatch), asyncHandle
       from_zone: item.from_zone || item.fromZone,
       to_zone: item.to_zone || item.toZone,
       eta_min: Number(item.eta_min ?? item.etaMin),
-      benchmark_min: Number(item.benchmark_min ?? item.benchmarkMin ?? 10.0),
+      benchmark_min: Number(item.benchmark_min ?? item.benchmarkMin ?? configuredSlaMin),
       path: item.path || [],
       status: 'EnRoute',
       dispatched_at: new Date().toISOString(),
@@ -81,6 +85,8 @@ dispatchRouter.post('/dispatch', validateBody(postSchemas.dispatch), asyncHandle
     }
     return response.json({ ok: true, count: items.length, dispatches: inserted.data });
   }
+
+  configuredSlaMin ??= (await loadConfig()).sla_min;
 
   for (const item of items) {
     const ambulanceId = ambulanceIdOf(item);
@@ -112,7 +118,7 @@ dispatchRouter.post('/dispatch', validateBody(postSchemas.dispatch), asyncHandle
       from_zone: item.from_zone || item.fromZone || ambulance.zoneId,
       to_zone: item.to_zone || item.toZone || emergency.zoneId,
       eta_min: Number(item.eta_min ?? item.etaMin),
-      benchmark_min: Number(item.benchmark_min ?? item.benchmarkMin ?? 10.0),
+      benchmark_min: Number(item.benchmark_min ?? item.benchmarkMin ?? configuredSlaMin),
       path: item.path || [ambulance.zoneId, emergency.zoneId],
       status: 'EnRoute',
       dispatched_at: new Date().toISOString(),

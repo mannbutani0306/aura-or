@@ -141,12 +141,12 @@ export class SupabaseDataSource implements DataSource {
       sessionStorage.setItem('aura_demo_mode', 'true');
     }
     this.zones = [
-      { id: 'A', name: 'Goripalayam', lat: 9.9325, lng: 78.1312, areaType: 'Commercial', localMin: 2.0 },
-      { id: 'B', name: 'Anna Nagar', lat: 9.9208, lng: 78.1489, areaType: 'Residential', localMin: 2.0 },
-      { id: 'C', name: 'Periyar / Central', lat: 9.9174, lng: 78.1139, areaType: 'Transit', localMin: 2.5 },
-      { id: 'D', name: 'K.K. Nagar', lat: 9.9381, lng: 78.1523, areaType: 'Suburban', localMin: 2.0 },
-      { id: 'E', name: 'Simmakkal', lat: 9.9282, lng: 78.1219, areaType: 'Hospital', localMin: 1.5 },
-      { id: 'F', name: 'Villapuram', lat: 9.8973, lng: 78.1294, areaType: 'Industrial', localMin: 2.0 },
+      { id: 'A', name: 'Goripalayam', lat: 9.9325, lng: 78.1312, areaType: 'Urban', localMin: 2.0 },
+      { id: 'B', name: 'Anna Nagar', lat: 9.9208, lng: 78.1489, areaType: 'Urban', localMin: 2.0 },
+      { id: 'C', name: 'Periyar / Central', lat: 9.9174, lng: 78.1139, areaType: 'Urban', localMin: 2.5 },
+      { id: 'D', name: 'K.K. Nagar', lat: 9.9381, lng: 78.1523, areaType: 'Urban', localMin: 2.0 },
+      { id: 'E', name: 'Simmakkal', lat: 9.9282, lng: 78.1219, areaType: 'Urban', localMin: 1.5 },
+      { id: 'F', name: 'Villapuram', lat: 9.8973, lng: 78.1294, areaType: 'Urban', localMin: 2.0 },
     ];
     this.roads = [
       { a: 'A', b: 'B', minutes: 7.0, blocked: false },
@@ -271,7 +271,7 @@ export class SupabaseDataSource implements DataSource {
         name: String(row.name || row.id),
         lat: Number(row.lat),
         lng: Number(row.lng),
-        areaType: row.area_type || row.areatype || 'Commercial',
+        areaType: row.area_type || row.areatype || 'Urban',
         localMin: row.local_min != null ? Number(row.local_min) : (row.localmin != null ? Number(row.localmin) : 2.0),
       }));
 

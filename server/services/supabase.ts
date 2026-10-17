@@ -32,12 +32,12 @@ export const supabase: SupabaseClient | null = SUPABASE_URL && SUPABASE_ANON_KEY
   : null;
 
 const baselineZones: Zone[] = [
-  { id: 'A', name: 'Goripalayam', lat: 9.9325, lng: 78.1312, areaType: 'Commercial', localMin: 2.0 },
-  { id: 'B', name: 'Anna Nagar', lat: 9.9208, lng: 78.1489, areaType: 'Residential', localMin: 2.0 },
-  { id: 'C', name: 'Periyar / Central', lat: 9.9174, lng: 78.1139, areaType: 'Transit', localMin: 2.5 },
-  { id: 'D', name: 'K.K. Nagar', lat: 9.9381, lng: 78.1523, areaType: 'Suburban', localMin: 2.0 },
-  { id: 'E', name: 'Simmakkal', lat: 9.9282, lng: 78.1219, areaType: 'Hospital', localMin: 1.5 },
-  { id: 'F', name: 'Villapuram', lat: 9.8973, lng: 78.1294, areaType: 'Industrial', localMin: 2.0 },
+  { id: 'A', name: 'Goripalayam', lat: 9.9325, lng: 78.1312, areaType: 'Urban', localMin: 2.0 },
+  { id: 'B', name: 'Anna Nagar', lat: 9.9208, lng: 78.1489, areaType: 'Urban', localMin: 2.0 },
+  { id: 'C', name: 'Periyar / Central', lat: 9.9174, lng: 78.1139, areaType: 'Urban', localMin: 2.5 },
+  { id: 'D', name: 'K.K. Nagar', lat: 9.9381, lng: 78.1523, areaType: 'Urban', localMin: 2.0 },
+  { id: 'E', name: 'Simmakkal', lat: 9.9282, lng: 78.1219, areaType: 'Urban', localMin: 1.5 },
+  { id: 'F', name: 'Villapuram', lat: 9.8973, lng: 78.1294, areaType: 'Urban', localMin: 2.0 },
 ];
 
 const baselineRoads: RoadEdge[] = [

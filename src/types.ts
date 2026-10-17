@@ -3,7 +3,7 @@
  * Single source of truth for all domain entities.
  */
 
-export type AreaType = 'Hospital' | 'Commercial' | 'Suburban' | 'Transit' | 'Industrial' | 'Residential';
+export type AreaType = 'Urban' | 'Rural' | 'Tribal';
 
 export interface Zone {
   id: string;        // e.g. 'A', 'B', 'C', 'D', 'E', 'F'
