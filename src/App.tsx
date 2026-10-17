@@ -15,6 +15,8 @@ import {
   Modal,
   Button,
   Kbd,
+  PulseControl,
+  ProvenancePopover,
 } from './design-system';
 import {
   IconUnit,
@@ -219,9 +221,6 @@ export default function App() {
         case 'M':
           toggleSound();
           break;
-        case '?':
-          setIsCommandPaletteOpen(true);
-          break;
       }
     };
 
@@ -362,8 +361,10 @@ export default function App() {
           })}
         </nav>
 
-        {/* Right: Controls (Events Log, Sound, Theme, Command Palette) */}
+        {/* Right: Controls (Events, Pulse, provenance, sound, theme, search) */}
         <div className="flex items-center gap-2">
+          <PulseControl />
+          <ProvenancePopover />
           {/* Live Events Stream Button: icon + "Events" */}
           <Tooltip content="Events">
             <button

@@ -175,6 +175,7 @@ export class SupabaseDataSource implements DataSource {
                 weight: Number(row.weight ?? (row.priority === 'Critical' ? 5 : row.priority === 'High' ? 3 : row.priority === 'Medium' ? 2 : 1)),
                 requiresAls: Boolean(row.requires_als ?? row.requiresAls ?? (row.priority === 'Critical')),
                 status: row.status || 'Pending',
+                source: typeof row.source === 'string' ? row.source : undefined,
                 requestedAt: row.requested_at ? (typeof row.requested_at === 'number' ? row.requested_at : new Date(row.requested_at).getTime()) : Date.now(),
                 updatedAt: row.updated_at ? (typeof row.updated_at === 'number' ? row.updated_at : new Date(row.updated_at).getTime()) : Date.now(),
               }));
@@ -290,6 +291,7 @@ export class SupabaseDataSource implements DataSource {
         weight: Number(row.weight ?? (row.priority === 'Critical' ? 5 : row.priority === 'High' ? 3 : row.priority === 'Medium' ? 2 : 1)),
         requiresAls: Boolean(row.requires_als ?? row.requiresAls ?? (row.priority === 'Critical')),
         status: row.status || 'Pending',
+        source: typeof row.source === 'string' ? row.source : undefined,
         requestedAt: row.requested_at
           ? (typeof row.requested_at === 'number' ? row.requested_at : new Date(row.requested_at).getTime())
           : Date.now(),
@@ -416,6 +418,7 @@ export class SupabaseDataSource implements DataSource {
               weight: Number(row.weight ?? (row.priority === 'Critical' ? 5 : 3)),
               requiresAls: Boolean(row.requires_als ?? (row.priority === 'Critical')),
               status: row.status || 'Pending',
+              source: typeof row.source === 'string' ? row.source : undefined,
               requestedAt: row.requested_at ? new Date(row.requested_at).getTime() : Date.now(),
               updatedAt: Date.now(),
             };
@@ -434,6 +437,7 @@ export class SupabaseDataSource implements DataSource {
                     weight: Number(row.weight ?? e.weight),
                     requiresAls: Boolean(row.requires_als ?? e.requiresAls),
                     status: row.status || e.status,
+                    source: typeof row.source === 'string' ? row.source : e.source,
                     updatedAt: Date.now(),
                   }
                 : e
@@ -699,6 +703,7 @@ export class SupabaseDataSource implements DataSource {
   async createEmergency(input: {
     zoneId: string;
     priority: Emergency['priority'];
+    source?: Emergency['source'];
     weight?: number;
     requiresAls?: boolean;
   }): Promise<Emergency> {
@@ -717,6 +722,7 @@ export class SupabaseDataSource implements DataSource {
         weight: Number(data.weight ?? (data.priority === 'Critical' ? 5 : 3)),
         requiresAls: Boolean(data.requiresAls ?? data.requires_als ?? (data.priority === 'Critical')),
         status: data.status || 'Pending',
+        source: typeof data.source === 'string' ? data.source : undefined,
         requestedAt: data.requestedAt || (data.requested_at ? new Date(data.requested_at).getTime() : Date.now()),
         updatedAt: Date.now(),
       };
@@ -731,6 +737,7 @@ export class SupabaseDataSource implements DataSource {
       status: 'Pending',
       requested_at: new Date().toISOString(),
     };
+    if (input.source) payload.source = input.source;
 
     const { data, error } = await supabase.from('emergencies').insert(payload).select().single();
     if (error) {
@@ -744,6 +751,7 @@ export class SupabaseDataSource implements DataSource {
       weight: Number(data.weight ?? (data.priority === 'Critical' ? 5 : 3)),
       requiresAls: Boolean(data.requires_als ?? (data.priority === 'Critical')),
       status: data.status,
+      source: typeof data.source === 'string' ? data.source : undefined,
       requestedAt: new Date(data.requested_at).getTime(),
       updatedAt: Date.now(),
     };

@@ -29,6 +29,7 @@ import {
   IconCall,
   IconUnit,
   AnimatedCounter,
+  Stamp,
 } from '../../design-system';
 import { ConnectionStatus } from '../../data/DataSource';
 import { EmergencyTableView } from '../fleet/EmergencyTableView';
@@ -741,7 +742,7 @@ export function CommandView({
           <div className="flex flex-col gap-5">
             <div className="flex items-center justify-between">
               <TriageTag priority={selectedCall.priority} weight={selectedCall.weight} size="md" />
-              <ProvenanceChip kind="REAL SAMPLE" />
+              {selectedCall.source === 'simulated' && <Stamp variant="SIM" color="high" rotation={0} />}
             </div>
 
             <div className="p-3 bg-[var(--surface)] border border-[var(--line)] rounded-[8px] flex flex-col gap-2 font-mono-numbers text-xs">

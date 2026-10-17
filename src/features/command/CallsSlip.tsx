@@ -1,6 +1,6 @@
 import React from 'react';
 import { Emergency } from '../../types';
-import { TriageTag, EcgSquiggle } from '../../design-system';
+import { TriageTag, EcgSquiggle, Stamp } from '../../design-system';
 
 interface CallsSlipProps {
   calls: Emergency[];
@@ -60,8 +60,9 @@ export function CallsSlip({
                   <div className="flex min-w-0 items-center gap-2.5">
                     <TriageTag priority={call.priority} size="sm" />
                     <div className="min-w-0">
-                      <div className="truncate font-mono-numbers text-[11px] font-bold tracking-[0.12em] text-[var(--ink)]">
-                        {call.id}
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <span className="truncate font-mono-numbers text-[11px] font-bold tracking-[0.12em] text-[var(--ink)]">{call.id}</span>
+                        {call.source === 'simulated' && <Stamp variant="SIM" color="high" rotation={0} />}
                       </div>
                       <div className="truncate font-mono-numbers text-[9px] uppercase tracking-[0.12em] text-[var(--ink-muted)]">
                         {zoneName(call.zoneId)}

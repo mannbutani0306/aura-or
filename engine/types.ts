@@ -42,6 +42,7 @@ export interface Emergency {
   weight: number;
   requiresAls: boolean;
   status: EmergencyStatus;
+  source?: string;
   requestedAt: number;
   updatedAt?: number;
 }

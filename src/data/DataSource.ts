@@ -59,6 +59,7 @@ export interface DataSource {
   createEmergency(input: {
     zoneId: string;
     priority: Emergency['priority'];
+    source?: Emergency['source'];
     weight?: number;
     requiresAls?: boolean;
   }): Promise<Emergency>;

@@ -17,6 +17,7 @@ import {
 } from './engine/assignment';
 import { buildTravelMatrix, yenKShortestPaths, dijkstra } from './engine/graph';
 import { Zone, RoadEdge, Ambulance, Emergency, AppConfig } from './engine/types';
+import { PulseManager } from './server/pulse';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -388,6 +389,7 @@ app.get('/api/route', async (req: Request, res: Response) => {
 // ==========================================
 let simSpeed = 1; // 1 real sec = 1 sim min by default (adjustable x1, x2, x5, x10)
 const SERVICE_TIME_MIN = 8.0; // 8 sim-minutes on scene before completion
+const pulseManager = new PulseManager(supabase, () => simSpeed);
 
 // In-memory fallback dataset for seamless demo / local execution when Supabase is offline
 const fallbackZones: Zone[] = [
@@ -713,6 +715,19 @@ app.post('/api/sim', (req: Request, res: Response) => {
   return res.status(400).json({ error: 'Speed multiplier must be 1, 2, 5, or 10.' });
 });
 
+app.get('/api/pulse', (_req: Request, res: Response) => {
+  return res.json(pulseManager.getState());
+});
+
+app.post('/api/pulse', async (req: Request, res: Response) => {
+  try {
+    return res.json(await pulseManager.update(req.body));
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unable to update Pulse';
+    return res.status(400).json({ ...pulseManager.getState(), error: message });
+  }
+});
+
 /**
  * POST /api/dispatch
  * Atomic batch dispatch calling RPC dispatch_batch(items, runId).
@@ -986,6 +1001,7 @@ app.post('/api/emergencies', async (req: Request, res: Response) => {
         status: 'Pending',
         requested_at: new Date().toISOString(),
       };
+      if (req.body?.source === 'simulated') payload.source = 'simulated';
       const { data, error } = await supabase.from('emergencies').insert(payload).select().single();
       if (error) throw error;
       return res.json(data);
@@ -998,6 +1014,7 @@ app.post('/api/emergencies', async (req: Request, res: Response) => {
       weight,
       requiresAls: Boolean(requiresAls),
       status: 'Pending',
+      source: req.body?.source === 'simulated' ? 'simulated' : undefined,
       requestedAt: Date.now(),
       updatedAt: Date.now(),
     };
@@ -1078,9 +1095,15 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`AURA Server running on http://0.0.0.0:${PORT} [${isProd ? 'production' : 'development'}]`);
   });
+  const shutdown = () => {
+    pulseManager.stop();
+    server.close(() => process.exit(0));
+  };
+  process.once('SIGINT', shutdown);
+  process.once('SIGTERM', shutdown);
 }
 
 startServer().catch((err) => {

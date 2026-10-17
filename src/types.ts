@@ -42,6 +42,7 @@ export interface Emergency {
   weight: number;    // 5=Critical, 3=High, 2=Medium, 1=Low
   requiresAls: boolean;
   status: EmergencyStatus;
+  source?: string;
   requestedAt: number; // Unix timestamp in ms
   updatedAt?: number;   // Unix timestamp in ms
 }
