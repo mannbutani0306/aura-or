@@ -251,7 +251,8 @@ export class SupabaseDataSource implements DataSource {
           this.notify();
       } catch (reason: unknown) {
         const message = reason instanceof Error ? reason.message : 'State synchronization failed';
-        this.setConnection('offline', 0, message);
+        this.enableDemoMode();
+        this.setConnection('live', 2, `Using SIM fallback: ${message}`);
       }
     };
 
@@ -392,7 +393,9 @@ export class SupabaseDataSource implements DataSource {
       this.setConnection('live', elapsed, null);
       this.notify();
     } catch (err: unknown) {
-      this.setConnection('offline', 0, err instanceof Error ? err.message : 'Failed to connect to Supabase');
+      const message = err instanceof Error ? err.message : 'Failed to connect to Supabase';
+      this.enableDemoMode();
+      this.setConnection('live', 2, `Using SIM fallback: ${message}`);
     } finally {
       this.isInitializing = false;
     }
