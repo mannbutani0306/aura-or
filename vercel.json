@@ -2,7 +2,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "functions": {
-    "api/[...path].ts": {
+    "api/[...path].js": {
       "includeFiles": [
         "data/tamil_nadu_ambulance_data.xlsx",
         ".server-build/vercel-app.cjs"

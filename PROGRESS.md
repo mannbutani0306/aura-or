@@ -67,7 +67,7 @@
 
 - Fixed the Vercel deployment gap: Vercel now routes `/api/*` to the existing Express API, which restores `/api/state`, `/api/route`, and `/api/ems-sample` instead of returning static-host 404 pages.
 - Runtime logs revealed Vercel was not packaging the extensionless TypeScript import `../server/app`; it failed with `ERR_MODULE_NOT_FOUND` at invocation.
-- The production build now bundles the Express application into `.server-build/vercel-app.cjs`, and the API function requires that self-contained server artifact. Vercel is configured to include both the bundle and EMS workbook.
+- The Vercel function entry is now a committed JavaScript file at `api/[...path].js` so Vercel discovers the route before running the build. The build bundles the Express app to `.server-build/vercel-app.cjs`, which the function loads without extensionless local imports.
 - The EMS workbook sample path resolves from the project root so it works from the bundled serverless function.
 - Included the checked-in EMS workbook in the Vercel function bundle and resolve it from the project root so Insights can return the anonymized 50-row sample when database sample rows are unavailable.
 - Disabled the long-lived simulation timer in the serverless handler. SIM fallback operational data is visible but not persistent between invocations; persistent operations and automatic dispatch progression require the documented Render/Railway server plus Supabase.

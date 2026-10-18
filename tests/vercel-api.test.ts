@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import request from 'supertest';
-import { app } from '../api/[...path]';
+import { app } from '../api/[...path].js';
 
 describe('Vercel API function', () => {
   it('serves the workbook-backed Insights sample through the deployed API handler', async () => {
