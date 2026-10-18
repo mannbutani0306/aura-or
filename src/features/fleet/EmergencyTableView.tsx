@@ -133,10 +133,10 @@ export function EmergencyTableView({
         message: `${call.id} status updated to ${nextStatus}`,
         ...(nextStatus === 'Completed' ? { stamp: 'CLEARED' as const } : {}),
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       onAddToast({
         type: 'error',
-        message: err?.message || `Failed to update status for ${call.id}`,
+        message: err instanceof Error ? err.message : `Failed to update status for ${call.id}`,
       });
     }
   };
@@ -157,10 +157,10 @@ export function EmergencyTableView({
           await dataSource.updateEmergencyStatus(callToCancel.id, callToCancel.status);
         },
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       onAddToast({
         type: 'error',
-        message: err?.message || `Failed to cancel call ${callToCancel.id}`,
+        message: err instanceof Error ? err.message : `Failed to cancel call ${callToCancel.id}`,
       });
     }
   };

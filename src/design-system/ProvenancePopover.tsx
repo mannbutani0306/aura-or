@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { Tooltip } from './Tooltip';
 import { EMS_SAMPLE_LABEL } from '../data/provenance';
-
-const entries = [
-  { name: 'EMS statistics', kind: EMS_SAMPLE_LABEL, detail: 'Workbook sheet: dummy_ambulance_data' },
-  { name: 'Road minutes', kind: 'DERIVED', detail: 'Coordinates at 36 km/h × 1.3 detour' },
-  { name: 'Fleet and live calls', kind: 'SIMULATED', detail: 'Current scenario activity' },
-] as const;
+import { dataSource } from '../data';
 
 export function ProvenancePopover() {
   const [isOpen, setIsOpen] = useState(false);
+  const operationalSource = dataSource.isDemo()
+    ? { kind: 'SIM', detail: 'In-memory fallback state' }
+    : { kind: 'SAMPLE', detail: 'Current Supabase operational rows' };
+  const entries = [
+    { name: 'EMS statistics', kind: EMS_SAMPLE_LABEL, detail: 'Workbook sheet: dummy_ambulance_data' },
+    { name: 'Road minutes', kind: 'DERIVED', detail: 'Dijkstra over the configured road-edge graph' },
+    { name: 'Fleet and live calls', ...operationalSource },
+  ];
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {

@@ -492,6 +492,9 @@ export async function solveFleetAllocation(
   const hungarianResult = solveHungarian(hungarianCosts);
   const hungarianObjective = hungarianResult.cost;
   const crossCheckOk = Math.abs(highsObjective - hungarianObjective) <= 1e-6;
+  if (!crossCheckOk) {
+    throw new Error(`HiGHS/Hungarian objective mismatch: ${highsObjective} vs ${hungarianObjective}`);
+  }
   const metrics = calculateMetrics(assignments, pendingCalls, availableUnits.length, costMatrix);
 
   return {

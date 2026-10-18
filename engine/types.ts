@@ -131,4 +131,5 @@ export interface SolveResponse {
   };
   metrics: PerformanceSummary;
   runId?: string;
+  persistenceError?: string;
 }

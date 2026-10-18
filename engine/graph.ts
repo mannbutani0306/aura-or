@@ -117,14 +117,13 @@ class MinHeap<T> {
 }
 
 /**
-/**
  * Internal helper to normalize inputs for Dijkstra & Yen algorithms
  */
 function normalizeGraphArgs(
-  arg1: any,
-  arg2: any,
-  arg3?: any,
-  arg4?: any
+  arg1: Zone[] | GraphEdge[] | RoadEdge[] | undefined,
+  arg2: GraphEdge[] | RoadEdge[] | string | undefined,
+  arg3?: string,
+  arg4?: string
 ): {
   nodeIds: string[];
   edges: { a: string; b: string; minutes: number; blocked?: boolean }[];
@@ -133,34 +132,15 @@ function normalizeGraphArgs(
 } {
   if (typeof arg2 === 'string') {
     // Called as: fn(edges, startZone, endZone)
-    const rawEdges: any[] = Array.isArray(arg1) ? arg1 : [];
+    const rawEdges = Array.isArray(arg1) ? (arg1 as Array<{ a?: string; b?: string; from?: string; to?: string; minutes?: number; weight?: number; blocked?: boolean }>) : [];
     const start = String(arg2 || '');
     const end = String(arg3 || '');
     const nodes = new Set<string>();
     nodes.add(start);
     if (end) nodes.add(end);
     const edges = rawEdges.map((e) => {
-      const a = String(e.a || e.from || '');
-      const b = String(e.b || e.to || '');
-      const minutes = Number(e.minutes ?? e.weight ?? 0);
-      const blocked = Boolean(e.blocked);
-      if (a) nodes.add(a);
-      if (b) nodes.add(b);
-      return { a, b, minutes, blocked };
-    });
-    return { nodeIds: Array.from(nodes), edges, start, end };
-  } else {
-    // Called as: fn(zones, edges, startZone, endZone)
-    const rawZones: Zone[] = Array.isArray(arg1) ? arg1 : [];
-    const rawEdges: any[] = Array.isArray(arg2) ? arg2 : [];
-    const start = String(arg3 || '');
-    const end = String(arg4 || '');
-    const nodes = new Set<string>(rawZones.map((z) => z.id));
-    nodes.add(start);
-    if (end) nodes.add(end);
-    const edges = rawEdges.map((e) => {
-      const a = String(e.a || e.from || '');
-      const b = String(e.b || e.to || '');
+      const a = String(e.a ?? e.from ?? '');
+      const b = String(e.b ?? e.to ?? '');
       const minutes = Number(e.minutes ?? e.weight ?? 0);
       const blocked = Boolean(e.blocked);
       if (a) nodes.add(a);
@@ -169,6 +149,27 @@ function normalizeGraphArgs(
     });
     return { nodeIds: Array.from(nodes), edges, start, end };
   }
+
+  // Called as: fn(zones, edges, startZone, endZone)
+  const rawZones: Zone[] = Array.isArray(arg1) && arg1.every((item) => item && typeof item === 'object' && 'id' in item)
+    ? (arg1 as Zone[])
+    : [];
+  const rawEdges = Array.isArray(arg2) ? (arg2 as Array<{ a?: string; b?: string; from?: string; to?: string; minutes?: number; weight?: number; blocked?: boolean }>) : [];
+  const start = String(arg3 || '');
+  const end = String(arg4 || '');
+  const nodes = new Set<string>(rawZones.map((z) => z.id));
+  nodes.add(start);
+  if (end) nodes.add(end);
+  const edges = rawEdges.map((e) => {
+    const a = String(e.a ?? e.from ?? '');
+    const b = String(e.b ?? e.to ?? '');
+    const minutes = Number(e.minutes ?? e.weight ?? 0);
+    const blocked = Boolean(e.blocked);
+    if (a) nodes.add(a);
+    if (b) nodes.add(b);
+    return { a, b, minutes, blocked };
+  });
+  return { nodeIds: Array.from(nodes), edges, start, end };
 }
 
 /**

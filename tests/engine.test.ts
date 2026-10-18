@@ -28,10 +28,12 @@ describe('seeded evaluation scenarios', () => {
 describe('engine guide scenarios', () => {
   it('matches expected guide behavior', async () => {
     for (const scenario of GUIDE_SCENARIOS) {
-      const solution = await solveFleetAllocation(scenario.units, scenario.calls, scenario.zones, scenario.edges, scenario.config, 'Weighted');
-      expect(solution.crossCheck.ok).toBe(true);
-      expect(solution.metrics.totalWeightedMin).toBeGreaterThanOrEqual(0);
-      expect(solution.assignments.length).toBeLessThanOrEqual(scenario.units.length);
+      for (const mode of ['Weighted', 'Plain'] as const) {
+        const solution = await solveFleetAllocation(scenario.units, scenario.calls, scenario.zones, scenario.edges, scenario.config, mode);
+        expect(solution.crossCheck.ok).toBe(true);
+        expect(solution.metrics.totalWeightedMin).toBeGreaterThanOrEqual(0);
+        expect(solution.assignments.length).toBeLessThanOrEqual(scenario.units.length);
+      }
     }
   });
 

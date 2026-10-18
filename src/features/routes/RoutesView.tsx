@@ -8,7 +8,7 @@ import {
   Tooltip,
   SectionTitle,
 } from '../../design-system';
-import { dataSource } from '../../data';
+import { dataSource, getSlaBenchmarkMinutes } from '../../data';
 import { Zone, RoadEdge, Ambulance, Emergency, Dispatch } from '../../types';
 import {
   GraphEdge,
@@ -33,6 +33,7 @@ export function RoutesView({ onNavigate, theme = 'paper', presentStep = null }: 
   const [ambulances, setAmbulances] = useState<Ambulance[]>([]);
   const [emergencies, setEmergencies] = useState<Emergency[]>([]);
   const [dispatches, setDispatches] = useState<Dispatch[]>([]);
+  const [routeError, setRouteError] = useState<string | null>(null);
 
   // Selection states
   const [selectionMode, setSelectionMode] = useState<'dispatched' | 'custom'>('custom');
@@ -40,6 +41,8 @@ export function RoutesView({ onNavigate, theme = 'paper', presentStep = null }: 
   const [selectedAmbulanceId, setSelectedAmbulanceId] = useState<string>('A1');
   const [selectedEmergencyId, setSelectedEmergencyId] = useState<string>('E1');
   const [targetZoneOverride, setTargetZoneOverride] = useState<string>('');
+  const [slaBenchmarkMinutes, setSlaBenchmarkMinutes] = useState<number | null>(null);
+  const [slaBenchmarkError, setSlaBenchmarkError] = useState<string | null>(null);
 
   // Alternative route selection
   const [selectedPathOverride, setSelectedPathOverride] = useState<string[] | null>(null);
@@ -82,12 +85,13 @@ export function RoutesView({ onNavigate, theme = 'paper', presentStep = null }: 
       setAmbulances(a);
       setEmergencies(e);
       setDispatches(d);
+      setRouteError(null);
 
       if (d.length > 0 && !selectedDispatchId) {
         setSelectedDispatchId(d[0].id);
       }
-    } catch (err) {
-      console.error('Failed to load route telemetry:', err);
+    } catch (reason: unknown) {
+      setRouteError(reason instanceof Error ? reason.message : 'Unable to load route data');
     }
   }, [selectedDispatchId]);
 
@@ -98,6 +102,18 @@ export function RoutesView({ onNavigate, theme = 'paper', presentStep = null }: 
     });
     return () => unsubscribe();
   }, [loadData]);
+
+  useEffect(() => {
+    let isCurrent = true;
+    void getSlaBenchmarkMinutes().then(
+      (minutes) => { if (isCurrent) setSlaBenchmarkMinutes(minutes); },
+      (reason: unknown) => {
+        if (!isCurrent) return;
+        setSlaBenchmarkError(reason instanceof Error ? reason.message : 'SLA target unavailable');
+      },
+    );
+    return () => { isCurrent = false; };
+  }, []);
 
   // Determine current origin zone & destination zone
   const { originZone, targetZone, targetCall, originUnit } = useMemo(() => {
@@ -150,6 +166,7 @@ export function RoutesView({ onNavigate, theme = 'paper', presentStep = null }: 
 
   // Server-computed route telemetry from GET /api/route?from=&to=&k=3
   const [serverRoutes, setServerRoutes] = useState<PathResult[] | null>(null);
+  const [serverRouteError, setServerRouteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!originZone || !targetZone) {
@@ -158,6 +175,7 @@ export function RoutesView({ onNavigate, theme = 'paper', presentStep = null }: 
     }
 
     let isSubscribed = true;
+    setServerRouteError(null);
     fetch(`/api/route?from=${encodeURIComponent(originZone)}&to=${encodeURIComponent(targetZone)}&k=3`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -169,11 +187,15 @@ export function RoutesView({ onNavigate, theme = 'paper', presentStep = null }: 
             data.all || (data.optimal ? [data.optimal, ...(data.alternatives || [])] : []);
           if (routes.length > 0) {
             setServerRoutes(routes);
+            setServerRouteError(null);
           }
         }
       })
-      .catch(() => {
-        if (isSubscribed) setServerRoutes(null);
+      .catch((reason: unknown) => {
+        if (isSubscribed) {
+          setServerRoutes(null);
+          setServerRouteError(reason instanceof Error ? reason.message : 'Server route calculation unavailable');
+        }
       });
 
     return () => {
@@ -285,8 +307,9 @@ export function RoutesView({ onNavigate, theme = 'paper', presentStep = null }: 
   const handleToggleRoad = async (a: string, b: string) => {
     try {
       await dataSource.toggleRoadBlock(a, b);
-    } catch (err) {
-      console.error('Failed to toggle road corridor blockage:', err);
+      setRouteError(null);
+    } catch (reason: unknown) {
+      setRouteError(reason instanceof Error ? reason.message : 'Unable to update road closure');
     }
   };
 
@@ -339,19 +362,9 @@ export function RoutesView({ onNavigate, theme = 'paper', presentStep = null }: 
     };
   }, [isVehiclePlaying, animateVehicle]);
 
-  // Benchmark SLA in seconds (e.g., 600s = 10m for Critical, 720s = 12m for High, 900s for Medium)
-  const slaBenchmarkMinutes =
-    targetCall?.priority === 'Critical'
-      ? 8
-      : targetCall?.priority === 'High'
-      ? 10
-      : targetCall?.priority === 'Medium'
-      ? 12
-      : 15;
-
   const activeElapsedSeconds = Math.round(activeTravelTime * 60);
-  const benchmarkSeconds = slaBenchmarkMinutes * 60;
-  const isWithinSla = activeTravelTime <= slaBenchmarkMinutes;
+  const benchmarkSeconds = slaBenchmarkMinutes === null ? 0 : slaBenchmarkMinutes * 60;
+  const isWithinSla = slaBenchmarkMinutes !== null && activeTravelTime <= slaBenchmarkMinutes;
 
   return (
     <div className="flex flex-col gap-5 w-full max-w-7xl mx-auto pb-12">
@@ -399,6 +412,9 @@ export function RoutesView({ onNavigate, theme = 'paper', presentStep = null }: 
           </div>
         }
       />
+
+      {routeError && <div role="alert" className="border-2 border-[var(--critical)] bg-[var(--surface-raised)] px-3 py-2 font-mono-numbers text-xs text-[var(--critical)]">{routeError}</div>}
+      {serverRouteError && <div role="status" className="border-l-4 border-[var(--high)] bg-[var(--surface-raised)] px-3 py-2 font-mono-numbers text-[10px] text-[var(--ink-muted)]">Server route unavailable; displaying the route derived from the current graph. {serverRouteError}</div>}
 
       {/* Unreachable Corridor Warning Banner */}
       {isUnreachable && (
@@ -866,21 +882,17 @@ export function RoutesView({ onNavigate, theme = 'paper', presentStep = null }: 
                 <div className="flex items-center gap-3">
                   <div className="text-right">
                     <div className="text-[10px] font-mono-numbers text-[var(--ink-muted)]">
-                      SLA Target: {slaBenchmarkMinutes}m
+                      {slaBenchmarkMinutes === null ? slaBenchmarkError ?? 'Loading SLA target' : `SLA Target: ${slaBenchmarkMinutes}m`}
                     </div>
                     <div
                       className={`text-xs font-mono-numbers font-semibold ${
-                        isWithinSla ? 'text-[var(--unit-available)]' : 'text-[var(--critical)]'
+                        slaBenchmarkMinutes === null ? 'text-[var(--ink-muted)]' : isWithinSla ? 'text-[var(--unit-available)]' : 'text-[var(--critical)]'
                       }`}
                     >
-                      {isWithinSla ? '✓ Within SLA' : '⚠ Exceeds SLA'}
+                      {slaBenchmarkMinutes === null ? 'SLA unavailable' : isWithinSla ? '✓ Within SLA' : '⚠ Exceeds SLA'}
                     </div>
                   </div>
-                  <SlaRing
-                    elapsedSeconds={activeElapsedSeconds}
-                    benchmarkSeconds={benchmarkSeconds}
-                    size={48}
-                  />
+                  {slaBenchmarkMinutes !== null && <SlaRing elapsedSeconds={activeElapsedSeconds} benchmarkSeconds={benchmarkSeconds} size={48} />}
                 </div>
               </div>
 

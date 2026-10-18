@@ -104,8 +104,8 @@ export default function App() {
         stamp: 'CLEARED',
         stampLabel: 'RESET',
       }]);
-    } catch (err: any) {
-      setResetMessage(err.message || 'Failed to reset scenario');
+    } catch (reason: unknown) {
+      setResetMessage(reason instanceof Error ? reason.message : 'Failed to reset scenario');
     } finally {
       setIsResetting(false);
     }

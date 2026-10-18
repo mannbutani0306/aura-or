@@ -31,12 +31,12 @@ solveRouter.post('/solve', asyncHandler(async (request, response) => {
           solve_ms: solution.solveMs,
           created_at: new Date().toISOString(),
         }).select('id').single();
-        if (!error && data?.id) solution.runId = data.id;
+        if (error) solution.persistenceError = error.message;
+        else if (data?.id) solution.runId = data.id;
+        else solution.persistenceError = 'Optimization run insert returned no id';
       } catch (reason: unknown) {
-        console.warn('Failed to insert optimization_run row:', reason);
+          solution.persistenceError = reason instanceof Error ? reason.message : 'Optimization run persistence failed';
       }
-    } else {
-      solution.runId = `run-${Date.now()}`;
     }
   }
   return response.json(solution);

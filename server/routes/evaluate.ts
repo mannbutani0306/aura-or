@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { runMonteCarloEvaluation, ensureTriageMix, TriageMix } from '../../engine/evaluate';
+import { DEFAULT_TRIAGE_MIX, runMonteCarloEvaluation, ensureTriageMix } from '../../engine/evaluate';
 import { asyncHandler, evaluateRateLimit, HttpError } from '../services/http';
 import { supabase } from '../services/supabase';
 
@@ -11,35 +11,11 @@ function clampScenarioCount(value: unknown): number {
   return Math.min(2000, Math.max(1, Math.round(next)));
 }
 
-async function readTriageMixFromDatabase(): Promise<TriageMix> {
-  if (!supabase) return { Critical: 40, High: 30, Medium: 20, Low: 10 };
-  try {
-    const { data, error } = await supabase.from('ems_cases').select('priority').limit(2000);
-    if (error || !Array.isArray(data)) return { Critical: 40, High: 30, Medium: 20, Low: 10 };
-    const counts = { Critical: 0, High: 0, Medium: 0, Low: 0 };
-    for (const row of data) {
-      const priority = String((row as { priority?: string })?.priority ?? 'Medium');
-      if (priority in counts) {
-        counts[priority as keyof typeof counts] += 1;
-      }
-    }
-    const total = Object.values(counts).reduce((sum, value) => sum + value, 0) || 1;
-    return {
-      Critical: (counts.Critical / total) * 100,
-      High: (counts.High / total) * 100,
-      Medium: (counts.Medium / total) * 100,
-      Low: (counts.Low / total) * 100,
-    };
-  } catch {
-    return { Critical: 40, High: 30, Medium: 20, Low: 10 };
-  }
-}
-
 evaluateRouter.post('/evaluate', evaluateRateLimit, asyncHandler(async (request, response) => {
   const body = request.body ?? {};
   const requestedN = clampScenarioCount(body.n ?? 500);
   const seed = Number(body.seed ?? 1337);
-  const triageMix = ensureTriageMix(body.triageMix ?? (await readTriageMixFromDatabase()));
+  const triageMix = ensureTriageMix(body.triageMix ?? DEFAULT_TRIAGE_MIX);
 
   response.setHeader('Content-Type', 'text/event-stream');
   response.setHeader('Cache-Control', 'no-cache, no-transform');
@@ -64,20 +40,24 @@ evaluateRouter.post('/evaluate', evaluateRateLimit, asyncHandler(async (request,
         p_value: summary.pValue,
         created_at: new Date().toISOString(),
       }).select('id').single();
-      if (!error && data?.id) {
-        const rows = summary.scenarios.map((item, index) => ({
-          run_id: data.id,
-          idx: index,
-          n_amb: item.fcfs.served + item.greedy.served + item.optimal.served,
-          n_em: 0,
-          fcfs: item.fcfs,
-          greedy: item.greedy,
-          optimal: item.optimal,
-        }));
-        await supabase.from('eval_scenarios').insert(rows);
-      }
-    } catch {
-      // Persist best-effort only when database is available.
+      if (error) throw new Error(`eval_runs: ${error.message}`);
+      if (!data?.id) throw new Error('eval_runs insert returned no run id');
+      const rows = summary.scenarios.map((item, index) => ({
+        run_id: data.id,
+        idx: index,
+        n_amb: item.unitCount,
+        n_em: item.callCount,
+        fcfs: item.fcfs,
+        greedy: item.greedy,
+        optimal: item.optimal,
+      }));
+      const scenarioInsert = await supabase.from('eval_scenarios').insert(rows);
+      if (scenarioInsert.error) throw new Error(`eval_scenarios: ${scenarioInsert.error.message}`);
+    } catch (reason: unknown) {
+      const message = reason instanceof Error ? reason.message : 'Evaluation persistence failed';
+      response.write(`event: error\ndata: ${JSON.stringify({ error: { code: 'EVALUATION_PERSIST_FAILED', message } })}\n\n`);
+      response.end();
+      return;
     }
   }
 

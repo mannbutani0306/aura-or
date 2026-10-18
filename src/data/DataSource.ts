@@ -50,7 +50,6 @@ export interface DataSource {
     status: Ambulance['status'];
   }): Promise<Ambulance>;
 
-  updateAmbulanceStatus(id: string, status: Ambulance['status']): Promise<Ambulance>;
   updateAmbulance(id: string, updates: Partial<Ambulance>): Promise<Ambulance>;
   deleteAmbulance(id: string): Promise<void>;
   restoreAmbulance(ambulance: Ambulance): Promise<Ambulance>;

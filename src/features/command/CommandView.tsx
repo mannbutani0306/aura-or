@@ -255,10 +255,10 @@ export function CommandView({
         type: 'success',
         message: `Registered ${created.priority} call ${created.id} in Sector ${newZoneId}`,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       addToast({
         type: 'error',
-        message: err?.message || 'Database error: unable to register call',
+        message: err instanceof Error ? err.message : 'Database error: unable to register call',
       });
     } finally {
       setIsSubmittingCall(false);
@@ -883,8 +883,8 @@ export function CommandView({
                           try {
                             await dataSource.advanceDispatch(activeDisp.id, 'OnScene');
                             addToast({ type: 'success', message: `${selectedUnit.id} marked On Scene` });
-                          } catch (e: any) {
-                            addToast({ type: 'error', message: e.message });
+                          } catch (e: unknown) {
+                            addToast({ type: 'error', message: e instanceof Error ? e.message : 'Unable to advance dispatch' });
                           }
                         }}
                       >
@@ -900,8 +900,8 @@ export function CommandView({
                           try {
                             await dataSource.advanceDispatch(activeDisp.id, 'Completed');
                             addToast({ type: 'success', message: `${selectedUnit.id} dispatch completed` });
-                          } catch (e: any) {
-                            addToast({ type: 'error', message: e.message });
+                          } catch (e: unknown) {
+                            addToast({ type: 'error', message: e instanceof Error ? e.message : 'Unable to complete dispatch' });
                           }
                         }}
                       >
@@ -915,8 +915,8 @@ export function CommandView({
                         try {
                           await dataSource.cancelDispatch(activeDisp.id);
                           addToast({ type: 'info', message: `Dispatch cancelled for ${selectedUnit.id}` });
-                        } catch (e: any) {
-                          addToast({ type: 'error', message: e.message });
+                        } catch (e: unknown) {
+                          addToast({ type: 'error', message: e instanceof Error ? e.message : 'Unable to cancel dispatch' });
                         }
                       }}
                     >
@@ -939,18 +939,9 @@ export function CommandView({
               >
                 Locate
               </Button>
-              <Button
-                variant={selectedUnit.status === 'Available' ? 'secondary' : 'primary'}
-                size="sm"
-                className="flex-1"
-                onClick={async () => {
-                  const nextStatus = selectedUnit.status === 'Available' ? 'Busy' : 'Available';
-                  await dataSource.updateAmbulanceStatus(selectedUnit.id, nextStatus);
-                  setSelectedUnit((prev) => (prev ? { ...prev, status: nextStatus } : null));
-                }}
-              >
-                {selectedUnit.status === 'Available' ? 'Hold' : 'Release'}
-              </Button>
+              <span className="flex-1 text-right font-mono-numbers text-[10px] font-bold uppercase text-[var(--ink-muted)]">
+                {selectedUnit.status}
+              </span>
             </div>
           </div>
         )}

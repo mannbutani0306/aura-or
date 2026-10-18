@@ -254,6 +254,13 @@ function EvaluationPanel({ presentStep }: { presentStep: number | null }) {
             if (!isEvaluationSummary(payload)) throw new Error('Evaluation summary response is invalid');
             fullPayload = payload;
           }
+          if (eventLine === 'error' && payload && typeof payload === 'object') {
+            const errorBody = (payload as Record<string, unknown>).error;
+            if (errorBody && typeof errorBody === 'object' && typeof (errorBody as Record<string, unknown>).message === 'string') {
+              throw new Error(String((errorBody as Record<string, unknown>).message));
+            }
+            throw new Error('Evaluation request failed');
+          }
         }
       }
       if (!fullPayload) throw new Error('No evaluation summary received');

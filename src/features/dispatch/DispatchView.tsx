@@ -185,6 +185,9 @@ export function DispatchView({ onNavigate, presentStep = null, onPresentTakeaway
     const result = await dataSource.solve({ mode });
     setSolveResult(result);
     setAdjustedAssignments(result.assignments);
+    if (result.persistenceError) {
+      addToast({ type: 'error', message: `Optimization result was not saved: ${result.persistenceError}` });
+    }
 
     // 3. Stagger ribbon draw-in
     await new Promise((resolve) => setTimeout(resolve, 350));
@@ -401,10 +404,10 @@ export function DispatchView({ onNavigate, presentStep = null, onPresentTakeaway
         stamp: 'DISPATCHED',
       });
       onNavigate('command');
-    } catch (err: any) {
+    } catch (err: unknown) {
       addToast({
         type: 'error',
-        message: err?.message || 'Database error: failed to execute batch dispatch',
+        message: err instanceof Error ? err.message : 'Database error: failed to execute batch dispatch',
       });
       setIsConfirmDispatchOpen(false);
       // Requirement 1: "if one assignment fails, none are applied; show the database error message in a toast and refresh the solve."
@@ -612,7 +615,7 @@ export function DispatchView({ onNavigate, presentStep = null, onPresentTakeaway
           </span>
         </Panel>
 
-        <Panel title="Served Units" badge="REAL SAMPLE">
+        <Panel title="Served Units" badge={dataSource.isDemo() ? 'SIMULATED' : 'REAL SAMPLE'}>
           <div className="flex items-baseline gap-1.5">
             <span className="font-serif-display text-3xl sm:text-4xl text-[var(--ink)] tabular-nums">
               <AnimatedCounter value={activeMetrics.servedCount} />/{activeMetrics.totalCount}

@@ -10,6 +10,23 @@ import { supabase, hasSupabaseConfig } from './supabaseClient';
 import type { SolveRequest, SolveResponse } from '../utils/solver';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
+function timestampValue(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const parsed = Date.parse(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return undefined;
+}
+
+function stateRows(value: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((row) => {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) throw new Error('State response contains an invalid row');
+    return row as Record<string, unknown>;
+  });
+}
+
 async function apiErrorMessage(response: Response, fallback: string): Promise<string> {
   const payload: unknown = await response.json().catch(() => null);
   if (!payload || typeof payload !== 'object') return fallback;
@@ -33,6 +50,7 @@ export class SupabaseDataSource implements DataSource {
   private roundTripMs: number = 0;
   private lastSyncedAt: number | null = null;
   private lastError: string | null = null;
+  private isDemoMode = false;
 
   private listeners: Set<() => void> = new Set();
   private connectionListeners: Set<
@@ -41,7 +59,7 @@ export class SupabaseDataSource implements DataSource {
   private eventLogListeners: Set<(logs: EventLogRow[]) => void> = new Set();
 
   private channel: RealtimeChannel | null = null;
-  private pingInterval: any = null;
+  private pingInterval: ReturnType<typeof setInterval> | null = null;
   private isInitializing: boolean = false;
 
   constructor() {
@@ -49,7 +67,7 @@ export class SupabaseDataSource implements DataSource {
   }
 
   isDemo(): boolean {
-    return false;
+    return this.isDemoMode;
   }
 
   getConnectionStatus(): ConnectionStatus {
@@ -137,6 +155,7 @@ export class SupabaseDataSource implements DataSource {
   }
 
   enableDemoMode(): void {
+    this.isDemoMode = true;
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('aura_demo_mode', 'true');
     }
@@ -166,61 +185,74 @@ export class SupabaseDataSource implements DataSource {
     const syncState = async () => {
       try {
         const resp = await fetch('/api/state');
-        if (resp.ok) {
-          const data = await resp.json();
-          if (data && data.ok) {
-            if (Array.isArray(data.ambulances)) {
-              this.ambulances = data.ambulances.map((row: any) => ({
-                id: String(row.id),
-                zoneId: String(row.zone_id || row.zoneId || 'A'),
-                type: (row.type as 'ALS' | 'BLS') || 'BLS',
-                status: (row.status as 'Available' | 'Busy' | 'Offline') || 'Available',
-                updatedAt: row.updated_at ? (typeof row.updated_at === 'number' ? row.updated_at : new Date(row.updated_at).getTime()) : Date.now(),
-              }));
-            }
-            if (Array.isArray(data.emergencies)) {
-              this.emergencies = data.emergencies.map((row: any) => ({
-                id: String(row.id),
-                zoneId: String(row.zone_id || row.zoneId || 'A'),
-                priority: row.priority || 'Critical',
-                weight: Number(row.weight ?? (row.priority === 'Critical' ? 5 : row.priority === 'High' ? 3 : row.priority === 'Medium' ? 2 : 1)),
-                requiresAls: Boolean(row.requires_als ?? row.requiresAls ?? (row.priority === 'Critical')),
-                status: row.status || 'Pending',
-                source: typeof row.source === 'string' ? row.source : undefined,
-                requestedAt: row.requested_at ? (typeof row.requested_at === 'number' ? row.requested_at : new Date(row.requested_at).getTime()) : Date.now(),
-                updatedAt: row.updated_at ? (typeof row.updated_at === 'number' ? row.updated_at : new Date(row.updated_at).getTime()) : Date.now(),
-              }));
-            }
-            if (Array.isArray(data.dispatches)) {
-              this.dispatches = data.dispatches.map((row: any) => ({
-                id: String(row.id),
-                emergencyId: String(row.emergency_id || row.emergencyId),
-                ambulanceId: String(row.ambulance_id || row.ambulanceId),
-                fromZone: String(row.from_zone || row.fromZone),
-                toZone: String(row.to_zone || row.toZone),
-                etaMin: Number(row.eta_min ?? row.etaMin ?? 0),
-                benchmarkMin: Number(row.benchmark_min ?? row.benchmarkMin ?? 10),
-                path: Array.isArray(row.path) ? row.path : typeof row.path === 'string' ? JSON.parse(row.path) : [],
-                status: row.status || 'EnRoute',
-                dispatchedAt: row.dispatched_at ? new Date(row.dispatched_at).getTime() : Date.now(),
-                arrivedAt: row.arrived_at ? new Date(row.arrived_at).getTime() : undefined,
-                completedAt: row.completed_at ? new Date(row.completed_at).getTime() : undefined,
-              }));
-            }
-            if (Array.isArray(data.events)) {
-              this.eventLogs = data.events.map((row: any) => ({
-                id: row.id,
-                kind: row.kind || 'EVENT',
-                entityIds: row.entity_ids || row.entityIds || null,
-                details: row.details || row.payload || null,
-                createdAt: row.created_at ? (typeof row.created_at === 'number' ? row.created_at : new Date(row.created_at).getTime()) : Date.now(),
-              }));
-              this.notifyEventLogs();
-            }
-            this.notify();
-          }
+        if (!resp.ok) throw new Error(await apiErrorMessage(resp, 'Unable to synchronize application state'));
+        const data: unknown = await resp.json();
+        if (!data || typeof data !== 'object' || (data as Record<string, unknown>).ok !== true) {
+          throw new Error('State synchronization response is invalid');
         }
-      } catch {}
+        const state = data as Record<string, unknown>;
+        if (Array.isArray(state.ambulances)) {
+          this.ambulances = stateRows(state.ambulances).map((row) => ({
+            id: String(row.id),
+            zoneId: String(row.zone_id ?? row.zoneId ?? 'A'),
+            type: row.type === 'ALS' ? 'ALS' : 'BLS',
+            status: row.status === 'Busy' || row.status === 'Offline' ? row.status : 'Available',
+            updatedAt: timestampValue(row.updated_at) ?? Date.now(),
+          }));
+        }
+        if (Array.isArray(state.emergencies)) {
+          this.emergencies = stateRows(state.emergencies).map((row) => {
+            const priority = row.priority === 'High' || row.priority === 'Medium' || row.priority === 'Low' ? row.priority : 'Critical';
+            return {
+              id: String(row.id),
+              zoneId: String(row.zone_id ?? row.zoneId ?? 'A'),
+              priority,
+              weight: Number(row.weight ?? (priority === 'Critical' ? 5 : priority === 'High' ? 3 : priority === 'Medium' ? 2 : 1)),
+              requiresAls: Boolean(row.requires_als ?? row.requiresAls ?? (priority === 'Critical')),
+              status: row.status === 'Dispatched' || row.status === 'Completed' || row.status === 'Cancelled' ? row.status : 'Pending',
+              source: typeof row.source === 'string' ? row.source : undefined,
+              requestedAt: timestampValue(row.requested_at) ?? Date.now(),
+              updatedAt: timestampValue(row.updated_at) ?? Date.now(),
+            };
+          });
+        }
+        if (Array.isArray(state.dispatches)) {
+          this.dispatches = stateRows(state.dispatches).map((row) => {
+            const rawPath: unknown = typeof row.path === 'string' ? JSON.parse(row.path) as unknown : row.path;
+            if (!Array.isArray(rawPath) || rawPath.some((zone) => typeof zone !== 'string')) {
+              throw new Error(`Dispatch ${String(row.id)} has an invalid path value`);
+            }
+            return {
+              id: String(row.id),
+              emergencyId: String(row.emergency_id ?? row.emergencyId),
+              ambulanceId: String(row.ambulance_id ?? row.ambulanceId),
+              fromZone: String(row.from_zone ?? row.fromZone),
+              toZone: String(row.to_zone ?? row.toZone),
+              etaMin: Number(row.eta_min ?? row.etaMin ?? 0),
+              benchmarkMin: Number(row.benchmark_min ?? row.benchmarkMin ?? 10),
+              path: rawPath,
+              status: row.status === 'OnScene' || row.status === 'Completed' || row.status === 'Cancelled' ? row.status : 'EnRoute',
+              dispatchedAt: timestampValue(row.dispatched_at) ?? Date.now(),
+              arrivedAt: timestampValue(row.arrived_at),
+              completedAt: timestampValue(row.completed_at),
+            };
+          });
+        }
+        if (Array.isArray(state.events)) {
+          this.eventLogs = stateRows(state.events).map((row) => ({
+            id: typeof row.id === 'number' ? row.id : String(row.id),
+            kind: typeof row.kind === 'string' ? row.kind : 'EVENT',
+            entityIds: Array.isArray(row.entity_ids ?? row.entityIds) ? (row.entity_ids ?? row.entityIds) as string[] : null,
+            details: row.details && typeof row.details === 'object' ? row.details as Record<string, unknown> : typeof row.details === 'string' ? row.details : null,
+            createdAt: timestampValue(row.created_at) ?? Date.now(),
+          }));
+          this.notifyEventLogs();
+        }
+          this.notify();
+      } catch (reason: unknown) {
+        const message = reason instanceof Error ? reason.message : 'State synchronization failed';
+        this.setConnection('offline', 0, message);
+      }
     };
 
     syncState();
@@ -266,17 +298,22 @@ export class SupabaseDataSource implements DataSource {
       if (dispatchesRes.error) throw new Error(`dispatches: ${dispatchesRes.error.message}`);
 
       // Map Zones
-      this.zones = (zonesRes.data || []).map((row: any) => ({
-        id: String(row.id),
-        name: String(row.name || row.id),
-        lat: Number(row.lat),
-        lng: Number(row.lng),
-        areaType: row.area_type || row.areatype || 'Urban',
-        localMin: row.local_min != null ? Number(row.local_min) : (row.localmin != null ? Number(row.localmin) : 2.0),
-      }));
+      this.zones = (zonesRes.data || []).map((row: Record<string, unknown>) => {
+        const areaType = typeof row.area_type === 'string' && (row.area_type === 'Urban' || row.area_type === 'Rural' || row.area_type === 'Tribal')
+          ? row.area_type
+          : 'Urban';
+        return {
+          id: String(row.id),
+          name: String(row.name ?? row.id),
+          lat: Number(row.lat),
+          lng: Number(row.lng),
+          areaType,
+          localMin: typeof row.local_min === 'number' ? Number(row.local_min) : 2.0,
+        };
+      });
 
       // Map Road Edges
-      this.roads = (roadsRes.data || []).map((row: any) => ({
+      this.roads = (roadsRes.data || []).map((row: Record<string, unknown>) => ({
         a: String(row.a),
         b: String(row.b),
         minutes: Number(row.minutes),
@@ -284,84 +321,78 @@ export class SupabaseDataSource implements DataSource {
       }));
 
       // Map Ambulances
-      this.ambulances = (ambsRes.data || []).map((row: any) => ({
+      this.ambulances = (ambsRes.data || []).map((row: Record<string, unknown>) => ({
         id: String(row.id),
-        zoneId: String(row.zone_id || row.zoneId || 'A'),
-        type: (row.type as 'ALS' | 'BLS') || 'BLS',
-        status: (row.status as 'Available' | 'Busy' | 'Offline') || 'Available',
-        updatedAt: row.updated_at
-          ? (typeof row.updated_at === 'number' ? row.updated_at : new Date(row.updated_at).getTime())
-          : Date.now(),
+        zoneId: String(row.zone_id ?? row.zoneId ?? 'A'),
+        type: row.type === 'ALS' ? 'ALS' : 'BLS',
+        status: row.status === 'Busy' || row.status === 'Offline' ? row.status : 'Available',
+        updatedAt: timestampValue(row.updated_at) ?? Date.now(),
       }));
 
       // Map Emergencies (weight & requires_als are generated columns in Supabase)
-      this.emergencies = (emsRes.data || []).map((row: any) => ({
-        id: String(row.id),
-        zoneId: String(row.zone_id || row.zoneId || 'A'),
-        priority: row.priority || 'Critical',
-        weight: Number(row.weight ?? (row.priority === 'Critical' ? 5 : row.priority === 'High' ? 3 : row.priority === 'Medium' ? 2 : 1)),
-        requiresAls: Boolean(row.requires_als ?? row.requiresAls ?? (row.priority === 'Critical')),
-        status: row.status || 'Pending',
-        source: typeof row.source === 'string' ? row.source : undefined,
-        requestedAt: row.requested_at
-          ? (typeof row.requested_at === 'number' ? row.requested_at : new Date(row.requested_at).getTime())
-          : Date.now(),
-        updatedAt: row.updated_at
-          ? (typeof row.updated_at === 'number' ? row.updated_at : new Date(row.updated_at).getTime())
-          : Date.now(),
-      }));
+      this.emergencies = (emsRes.data || []).map((row: Record<string, unknown>) => {
+        const priority = row.priority === 'High' || row.priority === 'Medium' || row.priority === 'Low' ? row.priority : 'Critical';
+        return {
+          id: String(row.id),
+          zoneId: String(row.zone_id ?? row.zoneId ?? 'A'),
+          priority,
+          weight: Number(row.weight ?? (priority === 'Critical' ? 5 : priority === 'High' ? 3 : priority === 'Medium' ? 2 : 1)),
+          requiresAls: Boolean(row.requires_als ?? row.requiresAls ?? (priority === 'Critical')),
+          status: row.status === 'Dispatched' || row.status === 'Completed' || row.status === 'Cancelled' ? row.status : 'Pending',
+          source: typeof row.source === 'string' ? row.source : undefined,
+          requestedAt: timestampValue(row.requested_at) ?? Date.now(),
+          updatedAt: timestampValue(row.updated_at) ?? Date.now(),
+        };
+      });
 
       // Map Dispatches
-      this.dispatches = (dispatchesRes.data || []).map((row: any) => ({
-        id: String(row.id),
-        emergencyId: String(row.emergency_id || row.emergencyId),
-        ambulanceId: String(row.ambulance_id || row.ambulanceId),
-        fromZone: String(row.from_zone || row.fromZone),
-        toZone: String(row.to_zone || row.toZone),
-        etaMin: Number(row.eta_min ?? row.etaMin ?? 0),
-        benchmarkMin: Number(row.benchmark_min ?? row.benchmarkMin ?? 0),
-        path: Array.isArray(row.path)
-          ? row.path
-          : typeof row.path === 'string'
-          ? (() => {
-              try {
-                return JSON.parse(row.path);
-              } catch {
-                return [];
-              }
-            })()
-          : [],
-        status: row.status || 'EnRoute',
-        dispatchedAt: row.dispatched_at
-          ? (typeof row.dispatched_at === 'number' ? row.dispatched_at : new Date(row.dispatched_at).getTime())
-          : Date.now(),
-        arrivedAt: row.arrived_at
-          ? (typeof row.arrived_at === 'number' ? row.arrived_at : new Date(row.arrived_at).getTime())
-          : undefined,
-        completedAt: row.completed_at
-          ? (typeof row.completed_at === 'number' ? row.completed_at : new Date(row.completed_at).getTime())
-          : undefined,
-      }));
+      this.dispatches = (dispatchesRes.data || []).map((row: Record<string, unknown>) => {
+        const rawPath: unknown = row.path;
+        const path = Array.isArray(rawPath)
+          ? rawPath.filter((zone): zone is string => typeof zone === 'string')
+          : typeof rawPath === 'string'
+            ? (() => {
+                const parsed: unknown = JSON.parse(rawPath);
+                if (!Array.isArray(parsed) || parsed.some((zone) => typeof zone !== 'string')) {
+                  throw new Error(`Dispatch ${String(row.id)} has an invalid path value`);
+                }
+                return parsed as string[];
+              })()
+            : [];
+        return {
+          id: String(row.id),
+          emergencyId: String(row.emergency_id ?? row.emergencyId),
+          ambulanceId: String(row.ambulance_id ?? row.ambulanceId),
+          fromZone: String(row.from_zone ?? row.fromZone),
+          toZone: String(row.to_zone ?? row.toZone),
+          etaMin: Number(row.eta_min ?? row.etaMin ?? 0),
+          benchmarkMin: Number(row.benchmark_min ?? row.benchmarkMin ?? 0),
+          path,
+          status: row.status === 'OnScene' || row.status === 'Completed' || row.status === 'Cancelled' ? row.status : 'EnRoute',
+          dispatchedAt: timestampValue(row.dispatched_at) ?? Date.now(),
+          arrivedAt: timestampValue(row.arrived_at),
+          completedAt: timestampValue(row.completed_at),
+        };
+      });
 
       // Map Event Logs (if table exists)
       if (!eventsRes.error && eventsRes.data) {
-        this.eventLogs = eventsRes.data.map((row: any) => ({
-          id: row.id,
-          kind: row.kind || 'EVENT',
-          entityIds: row.entity_ids || row.entityIds || null,
-          details: row.details || row.payload || null,
-          createdAt: row.created_at
-            ? (typeof row.created_at === 'number' ? row.created_at : new Date(row.created_at).getTime())
-            : Date.now(),
+        this.eventLogs = stateRows(eventsRes.data).map((row) => ({
+          id: row.id !== undefined ? String(row.id) : '',
+          kind: typeof row.kind === 'string' ? row.kind : 'EVENT',
+          entityIds: Array.isArray(row.entity_ids ?? row.entityIds) ? (row.entity_ids ?? row.entityIds) as string[] : null,
+          details: typeof row.details === 'string' ? row.details : typeof row.payload === 'string' ? row.payload : null,
+          createdAt: timestampValue(row.created_at) ?? Date.now(),
         }));
         this.notifyEventLogs();
       }
 
+      this.isDemoMode = false;
       const elapsed = Math.round(performance.now() - start);
       this.setConnection('live', elapsed, null);
       this.notify();
-    } catch (err: any) {
-      this.setConnection('offline', 0, err.message || 'Failed to connect to Supabase');
+    } catch (err: unknown) {
+      this.setConnection('offline', 0, err instanceof Error ? err.message : 'Failed to connect to Supabase');
     } finally {
       this.isInitializing = false;
     }
@@ -383,12 +414,12 @@ export class SupabaseDataSource implements DataSource {
         { event: '*', schema: 'public', table: 'ambulances' },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            const row: any = payload.new;
+            const row = payload.new as Record<string, unknown>;
             const item: Ambulance = {
               id: String(row.id),
-              zoneId: String(row.zone_id || row.zoneId),
-              type: row.type || 'BLS',
-              status: row.status || 'Available',
+              zoneId: String(row.zone_id ?? row.zoneId ?? 'A'),
+              type: row.type === 'ALS' ? 'ALS' : 'BLS',
+              status: row.status === 'Busy' || row.status === 'Offline' ? row.status : 'Available',
               updatedAt: Date.now(),
             };
             this.ambulances = [
@@ -396,20 +427,20 @@ export class SupabaseDataSource implements DataSource {
               item,
             ].sort((a, b) => a.id.localeCompare(b.id));
           } else if (payload.eventType === 'UPDATE') {
-            const row: any = payload.new;
+            const row = payload.new as Record<string, unknown>;
             this.ambulances = this.ambulances.map((a) =>
               a.id === String(row.id)
                 ? {
                     ...a,
-                    zoneId: String(row.zone_id || row.zoneId || a.zoneId),
-                    type: row.type || a.type,
-                    status: row.status || a.status,
+                    zoneId: String(row.zone_id ?? row.zoneId ?? a.zoneId),
+                    type: row.type === 'ALS' ? 'ALS' : a.type,
+                    status: row.status === 'Busy' || row.status === 'Offline' ? row.status : a.status,
                     updatedAt: Date.now(),
                   }
                 : a
             );
           } else if (payload.eventType === 'DELETE') {
-            const oldId = String((payload.old as any).id);
+            const oldId = String((payload.old as Record<string, unknown>).id);
             this.ambulances = this.ambulances.filter((a) => a.id !== oldId);
           }
           this.notify();
@@ -602,6 +633,7 @@ export class SupabaseDataSource implements DataSource {
     status: Ambulance['status'];
   }): Promise<Ambulance> {
     if (!supabase) throw new Error('Supabase not connected');
+    if (input.status === 'Busy') throw new Error('A unit can become Busy only through dispatch');
 
     const id = input.id || `A${Date.now().toString().slice(-4)}`;
     const payload = {
@@ -633,37 +665,13 @@ export class SupabaseDataSource implements DataSource {
     return created;
   }
 
-  async updateAmbulanceStatus(id: string, status: Ambulance['status']): Promise<Ambulance> {
-    if (!supabase) throw new Error('Supabase not connected');
-
-    const { data, error } = await supabase
-      .from('ambulances')
-      .update({ status, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    const updated: Ambulance = {
-      id: String(data.id),
-      zoneId: String(data.zone_id),
-      type: data.type,
-      status: data.status,
-      updatedAt: Date.now(),
-    };
-
-    this.ambulances = this.ambulances.map((a) => (a.id === id ? updated : a));
-    this.notify();
-    return updated;
-  }
-
   async updateAmbulance(id: string, updates: Partial<Ambulance>): Promise<Ambulance> {
     if (!supabase) throw new Error('Supabase not connected');
+    if (updates.status !== undefined) throw new Error('Unit status changes must use the dispatch lifecycle');
+    const current = this.ambulances.find((ambulance) => ambulance.id === id);
+    if (updates.zoneId && current?.status === 'Busy') throw new Error('A Busy unit cannot change base station');
 
-    const payload: any = { updated_at: new Date().toISOString() };
+    const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (updates.zoneId) payload.zone_id = updates.zoneId;
     if (updates.type) payload.type = updates.type;
     if (updates.status) payload.status = updates.status;
@@ -742,7 +750,7 @@ export class SupabaseDataSource implements DataSource {
       return created;
     }
 
-    const payload: any = {
+    const payload: Record<string, unknown> = {
       zone_id: input.zoneId,
       priority: input.priority,
       status: 'Pending',
@@ -805,7 +813,7 @@ export class SupabaseDataSource implements DataSource {
   async updateEmergency(id: string, updates: Partial<Emergency>): Promise<Emergency> {
     if (!supabase) throw new Error('Supabase not connected');
 
-    const payload: any = { updated_at: new Date().toISOString() };
+    const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (updates.zoneId) payload.zone_id = updates.zoneId;
     if (updates.priority) payload.priority = updates.priority;
     if (updates.status) payload.status = updates.status;
@@ -924,7 +932,7 @@ export class SupabaseDataSource implements DataSource {
       // Fallback to table update
     }
 
-    const updatePayload: any = {
+    const updatePayload: Record<string, unknown> = {
       status,
     };
     if (status === 'OnScene') updatePayload.arrived_at = new Date().toISOString();
@@ -1026,29 +1034,27 @@ export class SupabaseDataSource implements DataSource {
   }
 
   async getSimSpeed(): Promise<number> {
-    try {
-      const resp = await fetch('/api/sim');
-      if (resp.ok) {
-        const data = await resp.json();
-        return Number(data.speed || 1);
-      }
-    } catch {}
-    return 1;
+    const response = await fetch('/api/sim');
+    if (!response.ok) throw new Error(await apiErrorMessage(response, 'Simulation speed is unavailable'));
+    const payload: unknown = await response.json();
+    if (!payload || typeof payload !== 'object' || typeof (payload as Record<string, unknown>).speed !== 'number') {
+      throw new Error('Simulation speed response is invalid');
+    }
+    return (payload as { speed: number }).speed;
   }
 
   async setSimSpeed(speed: number): Promise<number> {
-    try {
-      const resp = await fetch('/api/sim', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ speed }),
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        return Number(data.speed || speed);
-      }
-    } catch {}
-    return speed;
+    const response = await fetch('/api/sim', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ speed }),
+    });
+    if (!response.ok) throw new Error(await apiErrorMessage(response, 'Unable to set simulation speed'));
+    const payload: unknown = await response.json();
+    if (!payload || typeof payload !== 'object' || typeof (payload as Record<string, unknown>).speed !== 'number') {
+      throw new Error('Simulation speed response is invalid');
+    }
+    return (payload as { speed: number }).speed;
   }
 
   // --- Optimization Solver ---

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AppConfig } from '../../../engine/types';
 import { SolveResponse } from '../../utils/solver';
-import { hasSupabaseConfig } from '../../data/supabaseClient';
+import { dataSource } from '../../data';
 import { Button, Modal, ProvenanceChip, Stamp } from '../../design-system';
 
 interface RunReportProps {
@@ -65,7 +65,7 @@ export function RunReport({ isOpen, onClose, result }: RunReportProps) {
             <h1 className="font-serif-display text-3xl">Run report</h1>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Stamp variant="STAT" color={hasSupabaseConfig ? 'available' : 'high'}>{hasSupabaseConfig ? 'SAMPLE' : 'SIM'}</Stamp>
+            <Stamp variant="STAT" color={dataSource.isDemo() ? 'high' : 'available'}>{dataSource.isDemo() ? 'SIM' : 'SAMPLE'}</Stamp>
             <ProvenanceChip kind="DERIVED" />
           </div>
         </header>

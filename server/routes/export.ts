@@ -180,11 +180,11 @@ function writeOptimizationSheet(
       ['Objective cell', '$B$2'],
       ['To', 'Min'],
       ['Changing cells', pendingCalls.length ? changingCells : 'No decision cells'],
-      ['Constraints', `unit row sums <= 1; call sums incl. queue = 1`],
+      ['Constraints', 'unit row sums <= 1; call sums incl. queue = 1; set every infeasible x_ij = 0'],
       ['Variable type', 'Binary'],
       ['Method', 'Simplex LP'],
       ['Cost handling', 'ALS penalty is included in feasible cost cells; queue variables incur weighted unserved_min.'],
-      ['Infeasible cells', `${INFEASIBLE_CELL_COST}; never selected when a feasible/queue choice exists.`],
+      ['Infeasible cells', `${INFEASIBLE_CELL_COST}; also add x_ij = 0 constraints for unreachable, hard-ALS, and response-cap pairs.`],
     ];
     parameterRows.forEach(([label, value], index) => {
       sheet.getCell(4 + index, parameterCol).value = label;

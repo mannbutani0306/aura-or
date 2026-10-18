@@ -23,6 +23,8 @@ export interface EvaluationScenario {
 export interface ScenarioResult {
   scenarioId: string;
   seed: number;
+  unitCount: number;
+  callCount: number;
   fcfs: {
     served: number;
     weightedTotal: number;
@@ -347,6 +349,8 @@ export function runMonteCarloEvaluation(
     scenarioResults.push({
       scenarioId: scenario.id,
       seed,
+      unitCount: scenario.units.length,
+      callCount: scenario.calls.length,
       fcfs: fcfsSummary,
       greedy: greedySummary,
       optimal: optimalSummary,

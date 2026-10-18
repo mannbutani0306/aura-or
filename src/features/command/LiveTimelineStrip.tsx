@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Dispatch, Ambulance, Emergency, EmergencyPriority } from '../../types';
 import { dataSource } from '../../data';
-import { Button, Tooltip, TriageTag, ToastMessage } from '../../design-system';
+import { Button, Tooltip, TriageTag, ToastMessage, Stamp } from '../../design-system';
 
 interface LiveTimelineStripProps {
   dispatches: Dispatch[];
@@ -56,10 +56,10 @@ export function LiveTimelineStrip({
         message: `Dispatch ${dispatchId} advanced to ${nextStatus}`,
         stamp: nextStatus === 'Completed' ? 'CLEARED' : 'ON SCENE',
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       onToast?.({
         type: 'error',
-        message: err.message || `Failed to advance dispatch to ${nextStatus}`,
+        message: err instanceof Error ? err.message : `Failed to advance dispatch to ${nextStatus}`,
       });
     } finally {
       setIsActionLoading(null);
@@ -74,10 +74,10 @@ export function LiveTimelineStrip({
         type: 'info',
         message: `Dispatch ${dispatchId} cancelled: Unit returned to Available, Call returned to Pending`,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       onToast?.({
         type: 'error',
-        message: err.message || 'Failed to cancel dispatch',
+        message: err instanceof Error ? err.message : 'Failed to cancel dispatch',
       });
     } finally {
       setIsActionLoading(null);
@@ -104,6 +104,7 @@ export function LiveTimelineStrip({
               Live Dispatches
             </span>
           </button>
+          <Stamp variant="SIM" color="high" rotation={0}>SIM TIME</Stamp>
 
           {/* Active summary badges */}
           <div className="flex items-center gap-2 text-[10px]">
@@ -237,7 +238,7 @@ export function LiveTimelineStrip({
                         )}
                         {disp.status === 'OnScene' && (
                           <span className="text-[#0F8B8D] font-medium">
-                            On Scene {(elapsedSimMin - disp.etaMin).toFixed(1)}m (Svc 8m)
+                            On Scene {(elapsedSimMin - disp.etaMin).toFixed(1)}m
                           </span>
                         )}
                         {disp.status === 'Completed' && (

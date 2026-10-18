@@ -1,14 +1,24 @@
 import React from 'react';
 
+interface SectionAction {
+  label: string;
+  onClick?: () => void;
+  href?: string;
+}
+
+function isSectionAction(value: unknown): value is SectionAction {
+  if (!value || typeof value !== 'object' || React.isValidElement(value) || !('label' in value)) return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.label === 'string'
+    && (candidate.onClick === undefined || typeof candidate.onClick === 'function')
+    && (candidate.href === undefined || typeof candidate.href === 'string');
+}
+
 export interface SectionTitleProps {
   eyebrow: string; // real data label, e.g. "04 PENDING", "MADURAI SECTOR"
   title: string;
   accentWord?: string; // Word that becomes italic + accent colour with hand-drawn underline
-  action?: {
-    label: string;
-    onClick?: () => void;
-    href?: string;
-  } | React.ReactNode;
+  action?: SectionAction | React.ReactNode;
   className?: string;
 }
 
@@ -55,7 +65,33 @@ export function SectionTitle({
     });
   };
 
-  const isActionObject = action && typeof action === 'object' && 'label' in action;
+  const actionData = isSectionAction(action) ? action : null;
+
+  const renderAction = (): React.ReactNode => {
+    if (actionData) {
+      if (actionData.href) {
+        return (
+          <a href={actionData.href} className="inline-flex items-center gap-1.5 text-[var(--ink)] hover:text-[var(--signal)] transition-colors underline underline-offset-4 decoration-2 decoration-[var(--line)] hover:decoration-[var(--signal)]">
+            <span>{actionData.label}</span>
+            <span aria-hidden="true">→</span>
+          </a>
+        );
+      }
+      if (actionData.onClick) {
+        return (
+          <button onClick={actionData.onClick} className="inline-flex items-center gap-1.5 text-[var(--ink)] hover:text-[var(--signal)] transition-colors cursor-pointer underline underline-offset-4 decoration-2 decoration-[var(--line)] hover:decoration-[var(--signal)]">
+            <span>{actionData.label}</span>
+            <span aria-hidden="true">→</span>
+          </button>
+        );
+      }
+      return <span>{actionData.label}</span>;
+    }
+    if (typeof action === 'string' || typeof action === 'number' || typeof action === 'boolean' || React.isValidElement(action)) {
+      return action;
+    }
+    return null;
+  };
 
   return (
     <div className={`flex flex-col sm:flex-row sm:items-end justify-between gap-2 pb-3 ${className}`}>
@@ -74,17 +110,7 @@ export function SectionTitle({
       {/* Right-aligned mono action/link */}
       {action && (
         <div className="font-mono-numbers text-xs font-semibold shrink-0">
-          {isActionObject ? (
-            <button
-              onClick={(action as any).onClick}
-              className="inline-flex items-center gap-1.5 text-[var(--ink)] hover:text-[var(--signal)] transition-colors cursor-pointer underline underline-offset-4 decoration-2 decoration-[var(--line)] hover:decoration-[var(--signal)]"
-            >
-              <span>{(action as any).label}</span>
-              <span aria-hidden="true">→</span>
-            </button>
-          ) : (
-            action
-          )}
+          {renderAction()}
         </div>
       )}
     </div>

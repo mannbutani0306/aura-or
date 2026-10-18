@@ -190,25 +190,6 @@ export function FleetView({ onNavigate }: FleetViewProps) {
     }
   };
 
-  // Inline Status Change via Segmented Control
-  const handleStatusChange = async (amb: Ambulance, newStatus: AmbulanceStatus) => {
-    const prevStatus = amb.status;
-    if (prevStatus === newStatus) return;
-
-    try {
-      await dataSource.updateAmbulanceStatus(amb.id, newStatus);
-      addToast({
-        type: 'success',
-        message: `Unit ${amb.id} marked ${newStatus}`,
-      });
-    } catch (err: any) {
-      addToast({
-        type: 'error',
-        message: err?.message || `Failed to update status for ${amb.id}`,
-      });
-    }
-  };
-
   // Add Unit
   const handleDeployUnit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -255,10 +236,10 @@ export function FleetView({ onNavigate }: FleetViewProps) {
           await dataSource.restoreAmbulance(toDelete);
         },
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       addToast({
         type: 'error',
-        message: err?.message || `Failed to delete unit ${toDelete.id}`,
+        message: err instanceof Error ? err.message : `Failed to delete unit ${toDelete.id}`,
       });
     }
   };
@@ -444,27 +425,11 @@ export function FleetView({ onNavigate }: FleetViewProps) {
                             {zone ? `${zone.id} · ${zone.name}` : `Zone ${amb.zoneId}`}
                           </td>
 
-                          {/* Status: Inline Segmented Control */}
-                          <td className="py-2 px-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                            <div className="inline-flex items-center p-0.5 rounded-[6px] bg-[var(--surface-raised)] border border-[var(--line)]">
-                              {(['Available', 'Busy', 'Offline'] as const).map((st) => (
-                                <button
-                                  key={st}
-                                  onClick={() => handleStatusChange(amb, st)}
-                                  className={`px-2 py-0.5 text-[10px] font-mono-numbers uppercase tracking-wider rounded-[4px] transition-colors cursor-pointer ${
-                                    amb.status === st
-                                      ? st === 'Available'
-                                        ? 'bg-[var(--unit-available)] text-white font-medium shadow-xs'
-                                        : st === 'Busy'
-                                        ? 'bg-[var(--unit-busy)] text-white font-medium shadow-xs'
-                                        : 'bg-[var(--ink-subtle)] text-white font-medium shadow-xs'
-                                      : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
-                                  }`}
-                                >
-                                  {st}
-                                </button>
-                              ))}
-                            </div>
+                          {/* Status is read-only; dispatch, completion, and cancellation own transitions. */}
+                          <td className="py-2 px-3 whitespace-nowrap">
+                            <span className={`inline-flex items-center rounded-[4px] border border-[var(--line)] px-2 py-0.5 font-mono-numbers text-[10px] uppercase ${amb.status === 'Available' ? 'bg-[var(--unit-available)] text-white' : amb.status === 'Busy' ? 'bg-[var(--unit-busy)] text-white' : 'bg-[var(--surface)] text-[var(--ink-muted)]'}`}>
+                              {amb.status}
+                            </span>
                           </td>
 
                           {/* Last Change (Relative, mono) */}
@@ -660,7 +625,7 @@ export function FleetView({ onNavigate }: FleetViewProps) {
               Initial Status
             </label>
             <div className="grid grid-cols-3 gap-2">
-              {(['Available', 'Busy', 'Offline'] as const).map((st) => (
+              {(['Available', 'Offline'] as const).map((st) => (
                 <button
                   key={st}
                   type="button"
@@ -771,6 +736,7 @@ export function FleetView({ onNavigate }: FleetViewProps) {
                 {zones.map((z) => (
                   <button
                     key={z.id}
+                    disabled={inspectedUnit.status === 'Busy'}
                     onClick={async () => {
                       await dataSource.updateAmbulance(inspectedUnit.id, { zoneId: z.id });
                       setInspectedUnit((prev) => (prev ? { ...prev, zoneId: z.id } : null));
@@ -779,7 +745,7 @@ export function FleetView({ onNavigate }: FleetViewProps) {
                         message: `Reassigned ${inspectedUnit.id} to Zone ${z.id}`,
                       });
                     }}
-                    className={`p-1.5 rounded-[4px] border text-center font-mono-numbers text-xs cursor-pointer ${
+                    className={`p-1.5 rounded-[4px] border text-center font-mono-numbers text-xs cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 ${
                       inspectedUnit.zoneId === z.id
                         ? 'bg-[var(--surface-raised)] border-[var(--ink)] text-[var(--ink)] font-semibold'
                         : 'bg-[var(--surface)] border-[var(--line)] text-[var(--ink-muted)] hover:text-[var(--ink)]'
@@ -789,6 +755,7 @@ export function FleetView({ onNavigate }: FleetViewProps) {
                   </button>
                 ))}
               </div>
+              {inspectedUnit.status === 'Busy' && <p className="font-mono-numbers text-[10px] text-[var(--ink-muted)]">A Busy unit cannot change base station.</p>}
             </div>
 
             <div className="flex items-center gap-2 mt-auto pt-4 border-t border-[var(--line)]">
