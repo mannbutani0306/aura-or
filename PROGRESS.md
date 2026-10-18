@@ -60,4 +60,5 @@
 - Leaflet maps now invalidate size after layout changes and dispose cleanly when their views unmount. Realtime initialization no longer rebuilds an already-subscribed channel.
 - `/api/state` no longer treats failed core queries as empty data; optional event-log errors are exposed without preventing command-state loading.
 - Command KPI counts remain placeholders until the first operational-state response has been validated, rather than flashing zero values while loading.
-- Validation: `npm run lint`, `npm test` (15 tests), and `npm run build` passed. Production browser smoke verified strict script CSP, the Command map, workbook-backed Insights, and navigation back to Command without failed requests or runtime errors; push remains.
+- Validation: `npm run lint`, `npm test` (15 tests), and `npm run build` passed. Production browser smoke verified strict script CSP, the Command map, workbook-backed Insights, and navigation back to Command without failed requests or runtime errors.
+- The verified fix was committed as `f380e66` and pushed to `origin/main`.
