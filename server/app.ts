@@ -3,7 +3,6 @@ import cors from 'cors';
 import express, { Express, Request, Response } from 'express';
 import helmet from 'helmet';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { configRouter } from './routes/config';
 import { dispatchRouter } from './routes/dispatch';
 import { emsRouter } from './routes/ems';
@@ -18,7 +17,7 @@ import { stateRouter } from './routes/state';
 import { errorHandler, HttpError } from './services/http';
 import { startSimulationClock, stopSimulationClock } from './services/simClock';
 
-const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
+const currentDirectory = path.resolve(process.cwd(), 'server');
 
 export function createApp(options: { startSimulationClock?: boolean } = {}): Express {
   const app = express();

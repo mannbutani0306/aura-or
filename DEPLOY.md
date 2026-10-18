@@ -2,7 +2,7 @@
 
 ## Vercel
 
-The Vite site and the Express API are deployed together. `api/[...path].ts` forwards `/api/*` requests to the existing API, and `vercel.json` includes the EMS workbook in the serverless function bundle so Insights can use the checked-in 50-case sample when Supabase sample data is unavailable.
+The Vite site and the Express API are deployed together. The build creates a bundled Node-compatible Express app for `api/[...path].ts`; `vercel.json` includes that bundle and the EMS workbook in the serverless function so API routes and Insights' checked-in 50-case sample are available.
 
 1. Import the GitHub repository into Vercel and keep the repository root as the project root.
 2. Set the build command to `npm run build` and the output directory to `dist` (also declared in `vercel.json`).
