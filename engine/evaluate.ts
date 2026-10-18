@@ -118,6 +118,7 @@ export function selectPriorityFromMix(rng: () => number, mix: TriageMix): Triage
 
 export function generateSeededScenario(seed: number, index: number, triageMix: TriageMix = { Critical: 40, High: 30, Medium: 20, Low: 10 }): EvaluationScenario {
   const rng = mulberry32(seed + index * 9973);
+  const scenarioTime = Date.UTC(2025, 0, 1) + (seed >>> 0) * 1000 + index * 60_000;
   const zones: Zone[] = [
     { id: 'A', name: 'Goripalayam', lat: 9.9325, lng: 78.1312, areaType: 'Urban', localMin: 2.0 },
     { id: 'B', name: 'Anna Nagar', lat: 9.9208, lng: 78.1489, areaType: 'Urban', localMin: 2.0 },
@@ -156,7 +157,7 @@ export function generateSeededScenario(seed: number, index: number, triageMix: T
     zoneId: zones[Math.floor(rng() * zones.length)].id,
     type: unitIndex < Math.max(1, Math.round(nUnits * 0.35)) ? 'ALS' : 'BLS',
     status: 'Available',
-    updatedAt: Date.now() + unitIndex,
+    updatedAt: scenarioTime + unitIndex,
   }));
 
   const nCalls = 3 + Math.floor(rng() * 12);
@@ -170,8 +171,8 @@ export function generateSeededScenario(seed: number, index: number, triageMix: T
       weight,
       requiresAls: priority === 'Critical' && rng() > 0.3,
       status: 'Pending',
-      requestedAt: Date.now() + callIndex * 5000,
-      updatedAt: Date.now() + callIndex * 6000,
+      requestedAt: scenarioTime + callIndex * 5000,
+      updatedAt: scenarioTime + callIndex * 6000,
     };
   });
 

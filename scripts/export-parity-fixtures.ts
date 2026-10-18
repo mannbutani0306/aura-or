@@ -1,15 +1,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { buildCostMatrix, solveFleetAllocation } from '../engine/assignment';
+import { buildCostMatrix } from '../engine/assignment';
 import { buildTravelMatrix } from '../engine/graph';
-import { GUIDE_SCENARIOS } from '../engine/scenarios';
+import { GUIDE_SCENARIOS, GuideScenario } from '../engine/scenarios';
 import { Ambulance, DEFAULT_CONFIG, Emergency, RoadEdge, Zone } from '../engine/types';
 
 const root = process.cwd();
 const fixtureDir = path.join(root, 'tests', 'fixtures');
 fs.mkdirSync(fixtureDir, { recursive: true });
 
-const scenarios = [...GUIDE_SCENARIOS];
+const scenarios: GuideScenario[] = [...GUIDE_SCENARIOS];
 for (let i = 0; i < 100; i += 1) {
   const seed = i * 101 + 17;
   const rand = (value: number) => {
@@ -34,20 +34,18 @@ for (let i = 0; i < 100; i += 1) {
     zoneId: zones[Math.floor(rand(seed + idx + 7) * zones.length)].id,
     type: idx % 2 === 0 ? 'ALS' : 'BLS',
     status: 'Available',
-    updatedAt: Date.now(),
+    updatedAt: seed + idx,
   }));
   const calls: Emergency[] = Array.from({ length: 3 + Math.floor(rand(seed + 11) * 4) }, (_, idx) => ({
     id: `E${idx + 1}`,
     zoneId: zones[Math.floor(rand(seed + idx + 17) * zones.length)].id,
     priority: ['Critical', 'High', 'Medium', 'Low'][Math.floor(rand(seed + idx + 29) * 4)] as Emergency['priority'],
     weight: [5, 3, 2, 1][Math.floor(rand(seed + idx + 47) * 4)],
-    requiresAls: Math.random() > 0.7,
+    requiresAls: rand(seed + idx + 59) > 0.7,
     status: 'Pending',
-    requestedAt: Date.now(),
+    requestedAt: seed + idx * 5000,
   }));
   const config = { ...DEFAULT_CONFIG };
-  const matrix = buildTravelMatrix(units, calls, zones, edges);
-  const costMatrix = buildCostMatrix(units, calls, matrix, config, 'Weighted');
 
   scenarios.push({
     id: `seeded-${i}`,
@@ -56,8 +54,7 @@ for (let i = 0; i < 100; i += 1) {
     units,
     calls,
     config,
-  } as any);
-  console.log('Generated scenario', i);
+  });
 }
 
 const payload = {

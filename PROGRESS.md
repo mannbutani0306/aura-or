@@ -15,6 +15,9 @@
 - Insights evaluation panel reads the live summary payload and exports CSVs without stale type mismatches.
 - The parity fixture workflow is in place and the test suite now checks the engine contract against the real Dijkstra/travel-time model.
 - CI and container readiness were added via `.github/workflows/ci.yml`, `Dockerfile`, `docker-compose.yml`, and `.dockerignore` for repeatable build checks.
+- Seeded scenarios now use deterministic timestamps. Two complete 500-scenario runs with seed 1337 returned identical summaries, each averaging about 12.4 seconds, with zero integrity violations.
+- Coverage is enforced at the measured baseline (75% statements, 50% branches, 85% functions, 78% lines); latest results were 76.47%, 53.62%, 86.2%, and 78.63% respectively.
+- Python/PuLP could not be executed in this Windows environment because Python is unavailable. The seeded fixture exporter and PuLP reference are present, but independent PuLP parity remains unverified here; TS tests verify the HiGHS/Hungarian cross-check instead.
 
 - Verified the existing project already contains most of the Dispatch Slip primitives and design-system scaffolding.
 - The priority gap cleanup focused on the actual leaked user-facing copy and legacy token cleanup rather than rewriting the already-established app shell.

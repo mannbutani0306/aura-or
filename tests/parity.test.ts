@@ -1,19 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import parityFixture from './fixtures/parity.expected.json';
-import { buildCostMatrix, solveFleetAllocation } from '../engine/assignment';
-import { buildTravelMatrix } from '../engine/graph';
+import { solveFleetAllocation } from '../engine/assignment';
 import { GUIDE_SCENARIOS } from '../engine/scenarios';
 
-describe('parity fixture', () => {
-  it('matches the committed PuLP objective', async () => {
-    const scenarios = [...GUIDE_SCENARIOS];
-    for (const scenario of scenarios) {
-      const matrix = buildTravelMatrix(scenario.units, scenario.calls, scenario.zones, scenario.edges);
-      const costMatrix = buildCostMatrix(scenario.units, scenario.calls, matrix, scenario.config, 'Weighted');
+describe('independent solver cross-check', () => {
+  it('matches HiGHS with the Hungarian solver on guide scenarios', async () => {
+    for (const scenario of GUIDE_SCENARIOS) {
       const solution = await solveFleetAllocation(scenario.units, scenario.calls, scenario.zones, scenario.edges, scenario.config, 'Weighted');
-      expect(solution.objective).toBeGreaterThanOrEqual(0);
-      expect(costMatrix).toBeTruthy();
+      expect(solution.crossCheck.ok).toBe(true);
+      expect(solution.crossCheck.value).toBeCloseTo(solution.objective, 6);
     }
-    expect(parityFixture).toBeTruthy();
   });
 });

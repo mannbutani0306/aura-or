@@ -2,7 +2,28 @@ import { describe, expect, it } from 'vitest';
 import { buildCostMatrix, runFcfsBaseline, runPriorityGreedyBaseline, solveFleetAllocation } from '../engine/assignment';
 import { buildTravelMatrix, dijkstra } from '../engine/graph';
 import { GUIDE_SCENARIOS } from '../engine/scenarios';
+import { generateSeededScenario, runMonteCarloEvaluation } from '../engine/evaluate';
 import { DEFAULT_CONFIG } from '../engine/types';
+
+describe('seeded evaluation scenarios', () => {
+  it('reproduces the full scenario for the same seed and index', () => {
+    expect(generateSeededScenario(1337, 4)).toEqual(generateSeededScenario(1337, 4));
+  });
+
+  it('reports seeded Monte Carlo progress and integrity', async () => {
+    const progress: number[] = [];
+    const result = await runMonteCarloEvaluation({
+      n: 3,
+      seed: 1337,
+      progress: (current) => progress.push(current),
+    });
+    expect(result.scenarios).toHaveLength(3);
+    expect(result.integrityViolations).toBe(0);
+    expect(progress).toEqual([1, 2, 3]);
+    expect(result.pValue).toBeGreaterThanOrEqual(0);
+    expect(result.pValue).toBeLessThanOrEqual(1);
+  });
+});
 
 describe('engine guide scenarios', () => {
   it('matches expected guide behavior', async () => {
