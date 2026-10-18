@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { runMonteCarloEvaluation, ensureTriageMix, TriageMix } from '../../engine/evaluate';
-import { asyncHandler, HttpError } from '../services/http';
+import { asyncHandler, evaluateRateLimit, HttpError } from '../services/http';
 import { supabase } from '../services/supabase';
 
 export const evaluateRouter = Router();
@@ -35,7 +35,7 @@ async function readTriageMixFromDatabase(): Promise<TriageMix> {
   }
 }
 
-evaluateRouter.post('/evaluate', asyncHandler(async (request, response) => {
+evaluateRouter.post('/evaluate', evaluateRateLimit, asyncHandler(async (request, response) => {
   const body = request.body ?? {};
   const requestedN = clampScenarioCount(body.n ?? 500);
   const seed = Number(body.seed ?? 1337);

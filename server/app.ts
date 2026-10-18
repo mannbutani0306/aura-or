@@ -1,5 +1,7 @@
 import compression from 'compression';
+import cors from 'cors';
 import express, { Express, Request, Response } from 'express';
+import helmet from 'helmet';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { configRouter } from './routes/config';
@@ -19,8 +21,30 @@ const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 
 export function createApp(): Express {
   const app = express();
-  app.use(express.json({ limit: '10mb' }));
-  app.use(express.urlencoded({ extended: true }));
+  const appUrl = process.env.APP_URL?.trim();
+  const appOrigin = appUrl ? new URL(appUrl).origin : undefined;
+  app.set('trust proxy', 1);
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'wasm-unsafe-eval'"],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'],
+        imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+        connectSrc: ["'self'", 'https:', 'wss:'],
+        workerSrc: ["'self'", 'blob:'],
+        objectSrc: ["'none'"],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+  }));
+  app.use(cors({
+    origin: (origin, callback) => callback(null, !origin || (appOrigin !== undefined && origin === appOrigin)),
+    credentials: false,
+  }));
+  app.use(express.json({ limit: '1mb' }));
+  app.use(express.urlencoded({ extended: false, limit: '1mb', parameterLimit: 1000 }));
   app.use(compression());
 
   app.use('/api', healthRouter);
@@ -67,10 +91,21 @@ export async function startServer(): Promise<void> {
   const server = app.listen(port, '0.0.0.0', () => {
     console.log(`AURA Server running on http://0.0.0.0:${port} [${isProduction ? 'production' : 'development'}]`);
   });
+  let shuttingDown = false;
   const shutdown = () => {
+    if (shuttingDown) return;
+    shuttingDown = true;
     pulseManager.stop();
     stopSimulationClock();
-    server.close(() => process.exit(0));
+    server.close((error) => {
+      if (error) {
+        console.error('Graceful shutdown failed:', error.message);
+        process.exitCode = 1;
+      }
+    });
+    server.closeIdleConnections();
+    const shutdownTimer = setTimeout(() => server.closeAllConnections(), 10_000);
+    shutdownTimer.unref();
   };
   process.once('SIGINT', shutdown);
   process.once('SIGTERM', shutdown);

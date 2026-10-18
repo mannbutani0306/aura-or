@@ -1,4 +1,5 @@
 import { ErrorRequestHandler, NextFunction, Request, RequestHandler, Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import { z, ZodType } from 'zod';
 
 export class HttpError extends Error {
@@ -101,12 +102,42 @@ export function asyncHandler(handler: (request: Request, response: Response, nex
   };
 }
 
+export const evaluateRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: { code: 'RATE_LIMITED', message: 'Evaluation request limit reached. Try again later.' } },
+});
+
+export const pulseRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: { code: 'RATE_LIMITED', message: 'Pulse request limit reached. Try again later.' } },
+});
+
 export const errorHandler: ErrorRequestHandler = (error: unknown, _request, response, next) => {
-  if (response.headersSent) return next(error);
+  if (response.headersSent) {
+    response.end();
+    return;
+  }
   if (error instanceof HttpError) {
     return response.status(error.statusCode).json({ error: { code: error.code, message: error.message } });
   }
-  const message = error instanceof Error ? error.message : 'Internal server error';
+  if (error && typeof error === 'object' && 'type' in error) {
+    const parserError = error as { type?: unknown };
+    if (parserError.type === 'entity.too.large') {
+      return response.status(413).json({ error: { code: 'PAYLOAD_TOO_LARGE', message: 'Request body exceeds the 1 MB limit' } });
+    }
+    if (parserError.type === 'entity.parse.failed') {
+      return response.status(400).json({ error: { code: 'INVALID_JSON', message: 'Request body must be valid JSON' } });
+    }
+  }
   console.error('Unhandled API error:', error);
+  const message = process.env.NODE_ENV === 'production'
+    ? 'An unexpected error occurred'
+    : error instanceof Error ? error.message : 'Internal server error';
   return response.status(500).json({ error: { code: 'INTERNAL_ERROR', message } });
 };
