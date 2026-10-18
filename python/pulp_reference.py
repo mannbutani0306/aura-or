@@ -1,7 +1,6 @@
 import json
 from pathlib import Path
 
-import numpy as np
 import pulp
 
 
@@ -9,7 +8,6 @@ def solve_scenario(scenario: dict) -> dict:
     units = scenario['units']
     calls = scenario['calls']
     cost_matrix = scenario.get('cost_matrix', [])
-    mode = scenario.get('mode', 'weighted')
     if not cost_matrix:
         raise ValueError('cost_matrix is required')
 

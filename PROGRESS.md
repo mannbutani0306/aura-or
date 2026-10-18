@@ -2,6 +2,24 @@
 
 ## Checklist
 
+- [x] STEP 1 — Excel Solver workbook export from current operational state, with Model, Expected, and Data sheets and a round-trip objective test.
+- [x] STEP 2 — Present mode and current-result CSV, PNG, and printable report exports.
+- [x] STEP 3 — Rewrite README; add VIVA, report map, and deployment documentation.
+- [ ] STEP 4 — Harden API security and configure Render deployment and first-load experience.
+- [ ] STEP 5 — Complete guide coverage and honesty/UX/code audit, then release.
+
+## Current Request Notes
+
+- Step 1 committed as `07483be`. Added `GET /api/export/solver.xlsx?mode=weighted|plain`, backed by the shared operational-state loader and the engine's Dijkstra/cost model.
+- Workbook contains editable binary decision cells, live row/column constraints and SUMPRODUCT objective, queue and ALS-policy costs, AURA expected results, raw current data, and Dijkstra path records. The ExcelJS round-trip test recomputes the Expected assignment objective.
+- Export is available from the Dispatch Model drawer and command palette. `npm run lint`, all 10 tests, and `npm run build` passed; build retains the existing large-bundle warning.
+- Step 2 committed as `19d0ec6`. Present mode (`P`, Left/Right arrows) now traverses live Fleet, Call form, Solve, comparison, Dijkstra trace, Model export, evaluation, and result takeaway. It can be exited at any step.
+- Added current solve CSV, evaluation CSV, `html-to-image` PNG capture, and a print-isolated A4 landscape Run report with live matrix, assignments, metrics, config, timestamps, and provenance. Evaluation remains available even if EMS SAMPLE rows fail to load.
+- Browser validation completed all eight steps against live UI state; the 500-scenario panel finished. PNG capture produced a download without cross-origin font errors after using `skipFonts`. At 390 CSS px, no horizontal overflow was observed.
+- Step 3 documentation and cleanup are staged for commit. README now describes the actual TypeScript/Express/Supabase app and model; `docs/VIVA.md` contains 25 code-grounded answers; `docs/REPORT_MAP.md` maps 17 report numbers and 15 slide numbers to source/screenshots. Original guide/PPT files were not found, so their titles remain unverified placeholders.
+- `npx depcheck` flagged `motion` and `autoprefixer`; both were removed. Tailwind remains required by `src/index.css` and `@tailwindcss/vite`; depcheck reports only that CSS/plugin dependency as an unused false positive. Regeneration scripts and `python/requirements.txt` were added, and `npm run parity:export` generated `tests/fixtures/parity.json`.
+- Step 3 validation: lint passed, all 10 tests passed, and production build passed with the existing `highs` externalization/large-chunk warning. Python/PuLP remains unexecuted locally because no Python runtime is installed.
+
 - [x] STEP 1 — Split the Express application, routes, shared Supabase/fallback state, config reader, and simulation clock; validate POST bodies and centralize structured errors.
 - [x] STEP 2 — Unify AppConfig defaults/loading and correct area types.
 - [x] STEP 3 — Apply ALS/SLA/cap costs consistently through HiGHS, Hungarian, and both baselines; add UI assignment markers/reasons.
