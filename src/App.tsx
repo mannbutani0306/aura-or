@@ -30,6 +30,7 @@ import {
   IconSearch,
 } from './design-system/icons';
 import { isSoundEnabled, setSoundEnabled, playSoftAlertBeep } from './utils/audio';
+import { downloadSolverWorkbook } from './utils/solverExport';
 import { dataSource, ConnectionStatus, EventLogRow } from './data';
 import { CommandView } from './features/command/CommandView';
 
@@ -292,6 +293,29 @@ export default function App() {
       category: 'Action',
       label: 'Events',
       perform: () => setIsEventsDrawerOpen(true),
+    },
+    {
+      id: 'action-export-solver',
+      category: 'Action',
+      label: 'Export for Solver',
+      description: 'Download the weighted current-state workbook',
+      perform: () => {
+        void downloadSolverWorkbook('Weighted').then(() => {
+          setToasts((current) => [...current, {
+            id: `solver-export-${Date.now()}`,
+            type: 'success',
+            message: 'Solver workbook exported',
+            stamp: 'STAT',
+            stampLabel: 'EXPORTED',
+          }]);
+        }).catch((reason: unknown) => {
+          setToasts((current) => [...current, {
+            id: `solver-export-${Date.now()}`,
+            type: 'error',
+            message: reason instanceof Error ? reason.message : 'Unable to export Solver workbook',
+          }]);
+        });
+      },
     },
     {
       id: 'action-reset-demo',

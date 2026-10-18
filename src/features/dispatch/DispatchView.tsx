@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Download } from 'lucide-react';
 import {
   Ambulance,
   Emergency,
@@ -36,6 +37,8 @@ import {
   Stamp,
 } from '../../design-system';
 import { ConnectionStatus } from '../../data/DataSource';
+import { ModelDrawer } from './ModelDrawer';
+import { downloadSolverWorkbook } from '../../utils/solverExport';
 
 interface DispatchViewProps {
   onNavigate: (route: string) => void;
@@ -64,6 +67,9 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
   const [adjustedAssignments, setAdjustedAssignments] = useState<SolveAssignment[]>([]);
   const [isCompareOpen, setIsCompareOpen] = useState(false);
   const [hoveredCell, setHoveredCell] = useState<{ ambId: string; emId: string } | null>(null);
+  const [isModelDrawerOpen, setIsModelDrawerOpen] = useState(false);
+  const [isExportingSolver, setIsExportingSolver] = useState(false);
+  const [solverExportError, setSolverExportError] = useState<string | null>(null);
 
   // Dispatch Confirmation Modal State
   const [isConfirmDispatchOpen, setIsConfirmDispatchOpen] = useState(false);
@@ -180,6 +186,21 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
     setAnimStage(3);
     setIsSolving(false);
     addToast({ type: 'success', message: 'Solver finished', stamp: 'STAT', stampLabel: 'SOLVED' });
+  };
+
+  const handleSolverExport = async () => {
+    setIsExportingSolver(true);
+    setSolverExportError(null);
+    try {
+      await downloadSolverWorkbook(solverMode);
+      addToast({ type: 'success', message: 'Solver workbook exported', stamp: 'STAT', stampLabel: 'EXPORTED' });
+    } catch (reason: unknown) {
+      const message = reason instanceof Error ? reason.message : 'Unable to export Solver workbook';
+      setSolverExportError(message);
+      addToast({ type: 'error', message });
+    } finally {
+      setIsExportingSolver(false);
+    }
   };
 
   // Keyboard shortcut: Ctrl+Enter or Cmd+Enter to solve
@@ -438,6 +459,10 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
               onClick={() => setIsCompareOpen(!isCompareOpen)}
             >
               {isCompareOpen ? 'Hide Baseline' : 'Compare'}
+            </Button>
+
+            <Button variant="ghost" size="md" onClick={() => setIsModelDrawerOpen(true)} icon={<Download size={14} />}>
+              Model
             </Button>
 
             {/* Post-Solve Actions */}
@@ -1011,6 +1036,15 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
           </div>
         </div>
       </Modal>
+
+      <ModelDrawer
+        isOpen={isModelDrawerOpen}
+        onClose={() => setIsModelDrawerOpen(false)}
+        mode={solverMode}
+        isExporting={isExportingSolver}
+        error={solverExportError}
+        onExport={() => { void handleSolverExport(); }}
+      />
 
       {/* Toast Notification Container */}
       <ToastContainer toasts={toasts} onDismiss={removeToast} />

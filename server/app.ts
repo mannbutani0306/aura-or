@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { configRouter } from './routes/config';
 import { dispatchRouter } from './routes/dispatch';
 import { evaluateRouter } from './routes/evaluate';
+import { exportRouter } from './routes/export';
 import { healthRouter } from './routes/health';
 import { pulseManager, pulseRouter } from './routes/pulse';
 import { routeRouter } from './routes/route';
@@ -25,6 +26,7 @@ export function createApp(): Express {
   app.use('/api', healthRouter);
   app.use('/api', configRouter);
   app.use('/api', evaluateRouter);
+  app.use('/api', exportRouter);
   app.use('/api', solveRouter);
   app.use('/api', routeRouter);
   app.use('/api', simRouter);
