@@ -31,8 +31,10 @@ import {
 } from './design-system/icons';
 import { isSoundEnabled, setSoundEnabled, playSoftAlertBeep } from './utils/audio';
 import { downloadSolverWorkbook } from './utils/solverExport';
+import { downloadCurrentScreenPng } from './utils/screenExport';
 import { dataSource, ConnectionStatus, EventLogRow } from './data';
 import { CommandView } from './features/command/CommandView';
+import { PresentMode } from './features/present/PresentMode';
 
 const DispatchView = lazy(() => import('./features/dispatch/DispatchView').then((module) => ({ default: module.DispatchView })));
 const FleetView = lazy(() => import('./features/fleet/FleetView').then((module) => ({ default: module.FleetView })));
@@ -142,6 +144,62 @@ export default function App() {
     }
   }, []);
 
+  const [presentStep, setPresentStep] = useState<number | null>(null);
+  const [presentTakeaway, setPresentTakeaway] = useState<string | null>(null);
+  const showPresentStep = useCallback((step: number) => {
+    const routes: NavTabId[] = ['fleet', 'command', 'dispatch', 'dispatch', 'routes', 'dispatch', 'insights', 'dispatch'];
+    const route = routes[step];
+    if (!route) {
+      setPresentStep(null);
+      return;
+    }
+    setPresentStep(step);
+    handleNavigate(route);
+    if (step === 5) {
+      void downloadSolverWorkbook('Weighted').catch((reason: unknown) => {
+        setToasts((current) => [...current, {
+          id: `present-export-${Date.now()}`,
+          type: 'error',
+          message: reason instanceof Error ? reason.message : 'Unable to export Solver workbook',
+        }]);
+      });
+    }
+  }, [handleNavigate]);
+  const startPresent = useCallback(() => {
+    setPresentTakeaway(null);
+    showPresentStep(0);
+  }, [showPresentStep]);
+  const previousPresent = useCallback(() => {
+    if (presentStep === null || presentStep === 0) return;
+    showPresentStep(presentStep - 1);
+  }, [presentStep, showPresentStep]);
+  const nextPresent = useCallback(() => {
+    if (presentStep === null) return;
+    if (presentStep === 7) {
+      setPresentStep(null);
+      return;
+    }
+    showPresentStep(presentStep + 1);
+  }, [presentStep, showPresentStep]);
+  const skipPresent = useCallback(() => setPresentStep(null), []);
+  const captureScreen = useCallback(() => {
+    void downloadCurrentScreenPng().then(() => {
+      setToasts((current) => [...current, {
+        id: `screen-export-${Date.now()}`,
+        type: 'success',
+        message: 'Screen captured',
+        stamp: 'STAT',
+        stampLabel: 'EXPORTED',
+      }]);
+    }).catch((reason: unknown) => {
+      setToasts((current) => [...current, {
+        id: `screen-export-${Date.now()}`,
+        type: 'error',
+        message: reason instanceof Error ? reason.message : 'Unable to capture screen',
+      }]);
+    });
+  }, []);
+
   // 6. Theme State
   const [theme, setTheme] = useState<ThemeMode>(() => {
     if (typeof window === 'undefined') return 'paper';
@@ -227,6 +285,10 @@ export default function App() {
         case '6':
           handleNavigate('kit');
           break;
+        case 'p':
+        case 'P':
+          startPresent();
+          break;
         case 't':
         case 'T':
           setTheme((prev) => (prev === 'paper' ? 'night' : 'paper'));
@@ -240,7 +302,7 @@ export default function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [toggleSound, handleNavigate]);
+  }, [toggleSound, handleNavigate, startPresent]);
 
   // Navigation Items Config
   const navItems: Array<{ id: NavTabId; label: string; shortcut: string; icon: React.ReactNode }> = [
@@ -295,6 +357,19 @@ export default function App() {
       perform: () => setIsEventsDrawerOpen(true),
     },
     {
+      id: 'action-present',
+      category: 'Action',
+      label: 'Present',
+      shortcut: 'P',
+      perform: startPresent,
+    },
+    {
+      id: 'action-screen-png',
+      category: 'Action',
+      label: 'Capture current screen',
+      perform: captureScreen,
+    },
+    {
       id: 'action-export-solver',
       category: 'Action',
       label: 'Export for Solver',
@@ -337,7 +412,9 @@ export default function App() {
       shortcut: 'M',
       perform: toggleSound,
     },
-  ], [soundActive, toggleSound, handleNavigate]);
+  ], [soundActive, toggleSound, handleNavigate, startPresent, captureScreen]);
+
+  const setPresentTakeawayValue = useCallback((value: string) => setPresentTakeaway(value), []);
 
   const handleSirenSweep = useCallback(() => {
     if (soundActive) {
@@ -460,19 +537,20 @@ export default function App() {
       </div>
 
       {/* 3. Main View Container with 240ms Shared Page Transition */}
-      <main className="flex-1 w-full max-w-full overflow-hidden p-3 sm:p-5 pb-20 md:pb-5 flex flex-col">
+      <main id="app-main" className="flex-1 w-full max-w-full overflow-hidden p-3 sm:p-5 pb-20 md:pb-5 flex flex-col">
         <div key={activeTab} className="page-transition-enter w-full flex-1 flex flex-col">
           {activeTab === 'command' && (
             <CommandView
               onNavigate={handleNavigate}
               theme={theme}
               onTriggerSiren={handleSirenSweep}
+              presentStep={presentStep}
             />
           )}
 
           {activeTab === 'dispatch' && (
             <Suspense fallback={<div role="status" className="rounded-[20px] border-2 border-[var(--line)] bg-[var(--surface-raised)] p-8 text-center font-mono-numbers text-xs uppercase tracking-widest text-[var(--ink-muted)]">Loading dispatch sheet…</div>}>
-              <DispatchView onNavigate={handleNavigate} />
+              <DispatchView onNavigate={handleNavigate} presentStep={presentStep} onPresentTakeaway={setPresentTakeawayValue} />
             </Suspense>
           )}
 
@@ -484,13 +562,13 @@ export default function App() {
 
           {activeTab === 'routes' && (
             <Suspense fallback={<div role="status" className="rounded-[20px] border-2 border-[var(--line)] bg-[var(--surface-raised)] p-8 text-center font-mono-numbers text-xs uppercase tracking-widest text-[var(--ink-muted)]">Loading route sheet…</div>}>
-              <RoutesView onNavigate={handleNavigate} theme={theme} />
+              <RoutesView onNavigate={handleNavigate} theme={theme} presentStep={presentStep} />
             </Suspense>
           )}
 
           {activeTab === 'insights' && (
             <Suspense fallback={<div role="status" className="rounded-[20px] border-2 border-[var(--line)] bg-[var(--surface-raised)] p-8 text-center font-mono-numbers text-xs uppercase tracking-widest text-[var(--ink-muted)]">Loading insights…</div>}>
-              <InsightsView onNavigate={handleNavigate} />
+              <InsightsView onNavigate={handleNavigate} presentStep={presentStep} />
             </Suspense>
           )}
 
@@ -543,6 +621,14 @@ export default function App() {
         isOpen={isCommandPaletteOpen}
         onClose={() => setIsCommandPaletteOpen(false)}
         items={commandPaletteItems}
+      />
+
+      <PresentMode
+        step={presentStep}
+        takeaway={presentTakeaway}
+        onPrevious={previousPresent}
+        onNext={nextPresent}
+        onSkip={skipPresent}
       />
 
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />

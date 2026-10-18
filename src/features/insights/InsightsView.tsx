@@ -1,6 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight, Download } from 'lucide-react';
 import { Button, SectionTitle, Stamp } from '../../design-system';
+import { EvaluationSummary } from '../../../engine/evaluate';
+import { downloadCsv } from '../../utils/fileExports';
 import {
   EmsCase,
   EMS_SAMPLE_LABEL,
@@ -18,6 +20,7 @@ import {
 
 interface InsightsViewProps {
   onNavigate: (route: string) => void;
+  presentStep?: number | null;
 }
 
 type FilterValue = 'All' | string;
@@ -41,7 +44,7 @@ function FilterChip({ label, active, onClick }: { label: string; active: boolean
   );
 }
 
-export function InsightsView({ onNavigate }: InsightsViewProps) {
+export function InsightsView({ onNavigate, presentStep = null }: InsightsViewProps) {
   const [cases, setCases] = useState<readonly EmsCase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -179,39 +182,35 @@ export function InsightsView({ onNavigate }: InsightsViewProps) {
             </div>
           </section>
 
-          <EvaluationPanel />
         </>
       )}
+      <EvaluationPanel presentStep={presentStep} />
     </div>
   );
 }
 
-function EvaluationPanel() {
+function isEvaluationSummary(value: unknown): value is EvaluationSummary {
+  if (!value || typeof value !== 'object') return false;
+  const summary = value as Record<string, unknown>;
+  return typeof summary.n === 'number'
+    && typeof summary.seed === 'number'
+    && typeof summary.meanImprovementPct === 'number'
+    && Array.isArray(summary.scenarios);
+}
+
+function EvaluationPanel({ presentStep }: { presentStep: number | null }) {
   const [seed, setSeed] = useState('1337');
   const [scenarioCount, setScenarioCount] = useState('500');
-  const [summary, setSummary] = useState<{ meanImprovementPct?: number; winCount?: number; tieCount?: number; lossCount?: number; pValue?: number; meanExtraCallsServed?: number; slaHitRate?: Record<string, number>; scenarios?: Array<{ scenarioId?: string; improvementPct?: number; criticalImprovementPct?: number; worstResponseImprovementPct?: number; extraCallsServed?: number }> } | null>(null);
+  const [summary, setSummary] = useState<EvaluationSummary | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const exportCsv = () => {
-    if (!summary?.scenarios?.length) return;
+    if (!summary?.scenarios.length) return;
     const header = ['scenarioId', 'improvementPct', 'criticalImprovementPct', 'worstResponseImprovementPct', 'extraCallsServed'];
-    const rows = summary.scenarios.map((item) => [
-      item.scenarioId ?? 'scenario',
-      item.improvementPct ?? 0,
-      item.criticalImprovementPct ?? 0,
-      item.worstResponseImprovementPct ?? 0,
-      item.extraCallsServed ?? 0,
-    ].join(','));
-    const csv = [header.join(','), ...rows].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `aura-eval-${Date.now()}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+    const rows = summary.scenarios.map((item) => [item.scenarioId, item.improvementPct, item.criticalImprovementPct, item.worstResponseImprovementPct, item.extraCallsServed]);
+    downloadCsv(`aura-eval-${Date.now()}.csv`, [header, ...rows]);
   };
 
   const runEvaluation = async () => {
@@ -231,7 +230,7 @@ function EvaluationPanel() {
       if (!reader) throw new Error('Streaming not supported');
       const decoder = new TextDecoder();
       let buffer = '';
-      let fullPayload: any = null;
+      let fullPayload: EvaluationSummary | null = null;
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -242,11 +241,17 @@ function EvaluationPanel() {
           const eventLine = chunk.match(/event: (.*)/)?.[1];
           const dataLine = chunk.match(/data: (.*)/)?.[1];
           if (!dataLine) continue;
-          const payload = JSON.parse(dataLine);
+          const payload: unknown = JSON.parse(dataLine);
           if (eventLine === 'progress') {
-            setProgress(Math.round(((payload.current ?? 0) / Math.max(1, payload.total ?? 1)) * 100));
+            if (payload && typeof payload === 'object') {
+              const progressEvent = payload as Record<string, unknown>;
+              const current = typeof progressEvent.current === 'number' ? progressEvent.current : 0;
+              const total = typeof progressEvent.total === 'number' ? progressEvent.total : 1;
+              setProgress(Math.round((current / Math.max(1, total)) * 100));
+            }
           }
           if (eventLine === 'complete') {
+            if (!isEvaluationSummary(payload)) throw new Error('Evaluation summary response is invalid');
             fullPayload = payload;
           }
         }
@@ -259,6 +264,16 @@ function EvaluationPanel() {
       setIsLoading(false);
     }
   };
+
+  const lastPresentRun = useRef(false);
+  useEffect(() => {
+    if (presentStep === 6 && !lastPresentRun.current) {
+      lastPresentRun.current = true;
+      void runEvaluation();
+    } else if (presentStep !== 6) {
+      lastPresentRun.current = false;
+    }
+  }, [presentStep]);
 
   const chartHeight = 120;
   const scenarioRows = summary?.scenarios ?? [];
@@ -290,7 +305,7 @@ function EvaluationPanel() {
         <button type="button" onClick={runEvaluation} disabled={isLoading} className="rounded-full border-2 border-[var(--line)] bg-[var(--ink)] px-3 py-2 font-mono-numbers text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--bg-app)] disabled:opacity-60">
           {isLoading ? 'Running…' : 'Run with SSE'}
         </button>
-        <button type="button" onClick={exportCsv} disabled={!summary?.scenarios?.length} className="inline-flex items-center gap-2 rounded-full border-2 border-[var(--line)] bg-[var(--surface-raised)] px-3 py-2 font-mono-numbers text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--ink)] disabled:opacity-40">
+        <button type="button" onClick={exportCsv} disabled={!summary?.scenarios.length} className="inline-flex items-center gap-2 rounded-full border-2 border-[var(--line)] bg-[var(--surface-raised)] px-3 py-2 font-mono-numbers text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--ink)] disabled:opacity-40">
           <Download size={12} /> Export CSV
         </button>
       </div>

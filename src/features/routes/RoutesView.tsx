@@ -23,9 +23,10 @@ import { RouteMap } from './RouteMap';
 interface RoutesViewProps {
   onNavigate: (route: string) => void;
   theme?: 'paper' | 'night';
+  presentStep?: number | null;
 }
 
-export function RoutesView({ onNavigate, theme = 'paper' }: RoutesViewProps) {
+export function RoutesView({ onNavigate, theme = 'paper', presentStep = null }: RoutesViewProps) {
   // Data subscriptions
   const [zones, setZones] = useState<Zone[]>([]);
   const [roads, setRoads] = useState<RoadEdge[]>([]);
@@ -48,6 +49,14 @@ export function RoutesView({ onNavigate, theme = 'paper' }: RoutesViewProps) {
   const [traceStepIndex, setTraceStepIndex] = useState<number>(0);
   const [isTracePlaying, setIsTracePlaying] = useState<boolean>(false);
   const [traceSpeed, setTraceSpeed] = useState<number>(800); // ms per step
+
+  useEffect(() => {
+    if (presentStep === 4) {
+      setIsTracing(true);
+      setTraceStepIndex(0);
+      setIsTracePlaying(true);
+    }
+  }, [presentStep]);
 
   // Simulated Vehicle states
   const [isVehiclePlaying, setIsVehiclePlaying] = useState<boolean>(false);
@@ -265,11 +274,12 @@ export function RoutesView({ onNavigate, theme = 'paper' }: RoutesViewProps) {
   // Reset Tracing when origin or target changes
   useEffect(() => {
     setTraceStepIndex(0);
-    setIsTracePlaying(false);
+    setIsTracing(presentStep === 4);
+    setIsTracePlaying(presentStep === 4);
     setSelectedPathOverride(null);
     setVehicleProgress(0);
     setIsVehiclePlaying(false);
-  }, [originZone, targetZone]);
+  }, [originZone, targetZone, presentStep]);
 
   // Road closure toggle handler
   const handleToggleRoad = async (a: string, b: string) => {

@@ -39,12 +39,14 @@ interface CommandViewProps {
   onNavigate: (route: string) => void;
   theme?: 'paper' | 'night';
   onTriggerSiren?: () => void;
+  presentStep?: number | null;
 }
 
 export function CommandView({
   onNavigate,
   theme = 'paper',
   onTriggerSiren,
+  presentStep = null,
 }: CommandViewProps) {
   // Domain Data State
   const [zones, setZones] = useState<Zone[]>([]);
@@ -69,6 +71,10 @@ export function CommandView({
 
   // Sub-tab inside Calls Left Panel: 'queue' | 'table'
   const [callsPanelTab, setCallsPanelTab] = useState<'queue' | 'table'>('queue');
+
+  useEffect(() => {
+    if (presentStep === 1) setIsAddModalOpen(true);
+  }, [presentStep]);
 
   // Breakpoint 768-1279px: Collapsible Overlays
   const [overlayPanel, setOverlayPanel] = useState<'calls' | 'units' | null>(null);

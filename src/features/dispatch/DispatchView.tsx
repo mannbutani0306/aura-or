@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Download } from 'lucide-react';
+import { Download, FileText } from 'lucide-react';
 import {
   Ambulance,
   Emergency,
@@ -38,13 +38,17 @@ import {
 } from '../../design-system';
 import { ConnectionStatus } from '../../data/DataSource';
 import { ModelDrawer } from './ModelDrawer';
+import { RunReport } from './RunReport';
 import { downloadSolverWorkbook } from '../../utils/solverExport';
+import { downloadCsv } from '../../utils/fileExports';
 
 interface DispatchViewProps {
   onNavigate: (route: string) => void;
+  presentStep?: number | null;
+  onPresentTakeaway?: (summary: string) => void;
 }
 
-export function DispatchView({ onNavigate }: DispatchViewProps) {
+export function DispatchView({ onNavigate, presentStep = null, onPresentTakeaway }: DispatchViewProps) {
   // Domain Data State
   const [ambulances, setAmbulances] = useState<Ambulance[]>([]);
   const [emergencies, setEmergencies] = useState<Emergency[]>([]);
@@ -70,6 +74,7 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
   const [isModelDrawerOpen, setIsModelDrawerOpen] = useState(false);
   const [isExportingSolver, setIsExportingSolver] = useState(false);
   const [solverExportError, setSolverExportError] = useState<string | null>(null);
+  const [isReportOpen, setIsReportOpen] = useState(false);
 
   // Dispatch Confirmation Modal State
   const [isConfirmDispatchOpen, setIsConfirmDispatchOpen] = useState(false);
@@ -203,6 +208,22 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
     }
   };
 
+  const handleExportCsv = () => {
+    if (!solveResult) return;
+    const rows: Array<Array<string | number | null>> = [
+      ['record_type', 'unit_id', 'call_id', 'eta_min', 'objective_cost', 'reason', 'metric', 'value'],
+      ...solveResult.assignments.map((assignment) => [
+        'assignment', assignment.ambulanceId, assignment.emergencyId, assignment.etaMin, assignment.weightedMin, '', '', '',
+      ]),
+      ...solveResult.unserved.map((item) => ['queued', '', item.emergencyId, '', '', item.reason, '', '']),
+      ...Object.entries(solveResult.metrics).map(([metric, value]) => ['metric', '', '', '', '', '', metric, value]),
+      ['run', '', '', '', '', '', 'mode', solveResult.mode],
+      ['run', '', '', '', '', '', 'objective', solveResult.objective],
+      ['run', '', '', '', '', '', 'engine', `${solveResult.engine} ${solveResult.engineVersion}`],
+    ];
+    downloadCsv(`aura-run-${Date.now()}.csv`, rows);
+  };
+
   // Keyboard shortcut: Ctrl+Enter or Cmd+Enter to solve
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -215,10 +236,24 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [solverMode, availableAmbulances, pendingEmergencies]);
 
+  const lastPresentSolveStep = useRef<number | null>(null);
+  useEffect(() => {
+    if (presentStep === 2 && availableAmbulances.length > 0 && pendingEmergencies.length > 0 && lastPresentSolveStep.current !== presentStep) {
+      lastPresentSolveStep.current = presentStep;
+      hasInitialSolved.current = true;
+      void handleSolve();
+    } else if (presentStep === 3) {
+      setIsCompareOpen(true);
+    } else if (presentStep === 5) {
+      setIsModelDrawerOpen(true);
+    }
+  }, [presentStep, availableAmbulances.length, pendingEmergencies.length]);
+
   // Initial solve on first mount when data loads
   const hasInitialSolved = useRef(false);
   useEffect(() => {
     if (
+      presentStep !== 2 &&
       !hasInitialSolved.current &&
       availableAmbulances.length > 0 &&
       pendingEmergencies.length > 0
@@ -230,6 +265,19 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
 
   // Active Assignments (either optimal result or manual adjustment)
   const currentAssignments = isAdjustMode ? adjustedAssignments : (solveResult?.assignments || []);
+
+  useEffect(() => {
+    if (!solveResult || !onPresentTakeaway) return;
+    const baseline = solveResult.baselines.fcfs.totalWeightedMin;
+    const delta = baseline - solveResult.objective;
+    const percent = baseline > 0 ? (delta / baseline) * 100 : 0;
+    const comparison = delta > 0
+      ? `${Math.abs(percent).toFixed(1)}% lower than FCFS`
+      : delta < 0
+        ? `${Math.abs(percent).toFixed(1)}% higher than FCFS`
+        : 'equal to FCFS';
+    onPresentTakeaway(`${solveResult.mode} objective ${solveResult.objective.toFixed(1)} vs FCFS ${baseline.toFixed(1)}: ${comparison}.`);
+  }, [solveResult, onPresentTakeaway]);
 
   // Compute live adjusted metrics
   const activeMetrics = useMemo(() => {
@@ -468,6 +516,12 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
             {/* Post-Solve Actions */}
             {solveResult && (
               <>
+                <Button variant="ghost" size="md" onClick={handleExportCsv} icon={<Download size={14} />}>
+                  CSV
+                </Button>
+                <Button variant="ghost" size="md" onClick={() => setIsReportOpen(true)} icon={<FileText size={14} />}>
+                  Report
+                </Button>
                 <Button
                   variant={isAdjustMode ? 'secondary' : 'ghost'}
                   size="md"
@@ -1045,6 +1099,7 @@ export function DispatchView({ onNavigate }: DispatchViewProps) {
         error={solverExportError}
         onExport={() => { void handleSolverExport(); }}
       />
+      {solveResult && <RunReport isOpen={isReportOpen} onClose={() => setIsReportOpen(false)} result={solveResult} />}
 
       {/* Toast Notification Container */}
       <ToastContainer toasts={toasts} onDismiss={removeToast} />
