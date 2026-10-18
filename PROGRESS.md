@@ -66,6 +66,7 @@
 ## Current Request — 2026-10-18
 
 - Fixed the Vercel deployment gap: Vercel now routes `/api/*` to the existing Express API, which restores `/api/state`, `/api/route`, and `/api/ems-sample` instead of returning static-host 404 pages.
+- Export the function as an explicit Node request/response handler while keeping the Express app available for route-level tests.
 - Included the checked-in EMS workbook in the Vercel function bundle and resolve it from the project root so Insights can return the anonymized 50-row sample when database sample rows are unavailable.
 - Disabled the long-lived simulation timer in the serverless handler. SIM fallback operational data is visible but not persistent between invocations; persistent operations and automatic dispatch progression require the documented Render/Railway server plus Supabase.
 - Added Vercel handler regressions for populated SIM state, route calculation, and Insights sample delivery.

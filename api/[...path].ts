@@ -1,5 +1,8 @@
 import { createApp } from '../server/app';
+import type { Request, Response } from 'express';
 
-const app = createApp({ startSimulationClock: false });
+export const app = createApp({ startSimulationClock: false });
 
-export default app;
+export default function handler(request: Request, response: Response): void {
+  app(request, response);
+}
