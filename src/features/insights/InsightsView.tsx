@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Download } from 'lucide-react';
 import { Button, SectionTitle, Stamp } from '../../design-system';
 import {
   EmsCase,
@@ -178,8 +178,165 @@ export function InsightsView({ onNavigate }: InsightsViewProps) {
               <Finding emoji="📍" text={`${metrics.percentWithin.toFixed(1)}% of selected cases meet their response benchmark.`} />
             </div>
           </section>
+
+          <EvaluationPanel />
         </>
       )}
+    </div>
+  );
+}
+
+function EvaluationPanel() {
+  const [seed, setSeed] = useState('1337');
+  const [scenarioCount, setScenarioCount] = useState('500');
+  const [summary, setSummary] = useState<{ meanImprovementPct?: number; winCount?: number; tieCount?: number; lossCount?: number; pValue?: number; meanExtraCallsServed?: number; slaHitRate?: Record<string, number>; scenarios?: Array<{ scenarioId?: string; improvementPct?: number; criticalImprovementPct?: number; worstResponseImprovementPct?: number; extraCallsServed?: number }> } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+
+  const exportCsv = () => {
+    if (!summary?.scenarios?.length) return;
+    const header = ['scenarioId', 'improvementPct', 'criticalImprovementPct', 'worstResponseImprovementPct', 'extraCallsServed'];
+    const rows = summary.scenarios.map((item) => [
+      item.scenarioId ?? 'scenario',
+      item.improvementPct ?? 0,
+      item.criticalImprovementPct ?? 0,
+      item.worstResponseImprovementPct ?? 0,
+      item.extraCallsServed ?? 0,
+    ].join(','));
+    const csv = [header.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `aura-eval-${Date.now()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const runEvaluation = async () => {
+    setIsLoading(true);
+    setError(null);
+    setProgress(0);
+    try {
+      const response = await fetch('/api/evaluate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ n: Number(scenarioCount), seed: Number(seed) }),
+      });
+      if (!response.ok) {
+        throw new Error('Evaluation request failed');
+      }
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('Streaming not supported');
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let fullPayload: any = null;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const chunks = buffer.split('\n\n');
+        buffer = chunks.pop() ?? '';
+        for (const chunk of chunks) {
+          const eventLine = chunk.match(/event: (.*)/)?.[1];
+          const dataLine = chunk.match(/data: (.*)/)?.[1];
+          if (!dataLine) continue;
+          const payload = JSON.parse(dataLine);
+          if (eventLine === 'progress') {
+            setProgress(Math.round(((payload.current ?? 0) / Math.max(1, payload.total ?? 1)) * 100));
+          }
+          if (eventLine === 'complete') {
+            fullPayload = payload;
+          }
+        }
+      }
+      if (!fullPayload) throw new Error('No evaluation summary received');
+      setSummary(fullPayload);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Unable to run evaluation');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const chartHeight = 120;
+  const scenarioRows = summary?.scenarios ?? [];
+  const chartPoints = scenarioRows.map((row, index) => {
+    const x = ((index + 1) / Math.max(1, scenarioRows.length || 1)) * 220;
+    const y = chartHeight - ((Number(row.improvementPct ?? 0) + 30) / 60) * chartHeight;
+    return `${x},${y}`;
+  }).join(' ');
+
+  return (
+    <section className="rounded-[24px] border-2 border-[var(--line)] bg-[var(--surface)] p-4 shadow-[6px_6px_0_var(--shadow-ink)]">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="font-mono-numbers text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--ink-muted)]">Monte Carlo evaluate</p>
+          <h2 className="font-serif-display text-3xl text-[var(--ink)]">Scenario lift</h2>
+        </div>
+        <Stamp variant="STAT" color="available">SIM · n={scenarioCount}</Stamp>
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-2 font-mono-numbers text-[10px] uppercase tracking-[0.12em] text-[var(--ink-muted)]">
+          scenarios
+          <input value={scenarioCount} onChange={(event) => setScenarioCount(event.target.value)} className="w-20 border-2 border-[var(--line)] bg-[var(--surface-raised)] px-2 py-1 font-mono-numbers text-[11px] text-[var(--ink)] outline-none" />
+        </label>
+        <label className="flex items-center gap-2 font-mono-numbers text-[10px] uppercase tracking-[0.12em] text-[var(--ink-muted)]">
+          seed
+          <input value={seed} onChange={(event) => setSeed(event.target.value)} className="w-24 border-2 border-[var(--line)] bg-[var(--surface-raised)] px-2 py-1 font-mono-numbers text-[11px] text-[var(--ink)] outline-none" />
+        </label>
+        <button type="button" onClick={runEvaluation} disabled={isLoading} className="rounded-full border-2 border-[var(--line)] bg-[var(--ink)] px-3 py-2 font-mono-numbers text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--bg-app)] disabled:opacity-60">
+          {isLoading ? 'Running…' : 'Run with SSE'}
+        </button>
+        <button type="button" onClick={exportCsv} disabled={!summary?.scenarios?.length} className="inline-flex items-center gap-2 rounded-full border-2 border-[var(--line)] bg-[var(--surface-raised)] px-3 py-2 font-mono-numbers text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--ink)] disabled:opacity-40">
+          <Download size={12} /> Export CSV
+        </button>
+      </div>
+
+      {isLoading && (
+        <div className="mb-4 h-2.5 w-full overflow-hidden rounded-full border-2 border-[var(--line)] bg-[var(--surface-raised)]">
+          <div className="h-full bg-[var(--unit-available)] transition-all duration-200" style={{ width: `${progress}%` }} />
+        </div>
+      )}
+
+      {error && <p className="mb-4 font-mono-numbers text-[10px] text-[var(--critical)]">{error}</p>}
+
+      {summary && (
+        <>
+          <div className="mb-4 grid gap-3 md:grid-cols-5">
+            <Metric label="mean improvement" value={`${(summary.meanImprovementPct ?? 0).toFixed(1)}%`} />
+            <Metric label="win rate" value={`${(((summary.winCount ?? 0) / Math.max(1, (summary.winCount ?? 0) + (summary.tieCount ?? 0) + (summary.lossCount ?? 0))) * 100).toFixed(1)}%`} />
+            <Metric label="p-value" value={(summary.pValue ?? 0).toFixed(3)} />
+            <Metric label="extra calls" value={(summary.meanExtraCallsServed ?? 0).toFixed(2)} />
+            <Metric label="SLA hit" value={`${((summary.slaHitRate?.optimal ?? 0) * 100).toFixed(1)}%`} />
+          </div>
+
+          <div className="rounded-[18px] border-2 border-[var(--line)] bg-[var(--surface-raised)] p-3">
+            <p className="mb-2 font-mono-numbers text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--ink-muted)]">per-scenario improvement</p>
+            <svg viewBox="0 0 240 120" className="h-32 w-full" role="img" aria-label="Scenario improvement chart">
+              <line x1="0" y1="110" x2="230" y2="110" stroke="var(--line)" strokeWidth="1" />
+              <line x1="10" y1="0" x2="10" y2="110" stroke="var(--line)" strokeWidth="1" />
+              <line x1="10" y1="55" x2="230" y2="55" stroke="var(--critical)" strokeOpacity="0.28" />
+              <polyline fill="none" stroke="var(--unit-available)" strokeWidth="2" points={chartPoints} />
+            </svg>
+          </div>
+
+          <p className="mt-3 font-serif-display text-lg text-[var(--ink)]">
+            Reading: {((summary.meanImprovementPct ?? 0) > 6 ? 'The optimiser is materially ahead of the priority-greedy baseline.' : 'The gain over priority-greedy is small enough that dispatcher judgement may outweigh the model delta.')}
+          </p>
+        </>
+      )}
+    </section>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[18px] border-2 border-[var(--line)] bg-[var(--surface-raised)] px-3 py-2">
+      <p className="font-mono-numbers text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--ink-muted)]">{label}</p>
+      <p className="mt-2 font-serif-display text-3xl text-[var(--ink)] tabular-nums">{value}</p>
     </div>
   );
 }

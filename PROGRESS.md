@@ -10,6 +10,12 @@
 
 ## Notes
 
+- Final validation passed: `npm run lint`, `npm test`, and `npm run build` all succeeded after the evaluation engine, parity fixtures, and deployment scaffolding were completed.
+- Monte Carlo evaluation now runs deterministically with a seeded triage mix and streams progress through `POST /api/evaluate` with SSE completion payloads.
+- Insights evaluation panel reads the live summary payload and exports CSVs without stale type mismatches.
+- The parity fixture workflow is in place and the test suite now checks the engine contract against the real Dijkstra/travel-time model.
+- CI and container readiness were added via `.github/workflows/ci.yml`, `Dockerfile`, `docker-compose.yml`, and `.dockerignore` for repeatable build checks.
+
 - Verified the existing project already contains most of the Dispatch Slip primitives and design-system scaffolding.
 - The priority gap cleanup focused on the actual leaked user-facing copy and legacy token cleanup rather than rewriting the already-established app shell.
 - Command-step pass kept behavior intact while replacing the heavy panel styling with smaller paper slips, tactile framing, and live KPI cards.

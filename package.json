@@ -10,6 +10,8 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
+    "test": "vitest --run",
+    "test:coverage": "vitest --run --coverage",
     "screenshots": "playwright test --config=playwright.config.ts"
   },
   "dependencies": {
@@ -40,10 +42,14 @@
     "@types/node": "^22.14.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@types/supertest": "^7.2.1",
+    "@vitest/coverage-v8": "^5.0.5",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.28.2",
+    "supertest": "^7.3.1",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
   }
 }
