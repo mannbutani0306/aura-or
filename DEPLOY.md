@@ -1,5 +1,16 @@
 # Deploy
 
+## Vercel
+
+The Vite site and the Express API are deployed together. `api/[...path].ts` forwards `/api/*` requests to the existing API, and `vercel.json` includes the EMS workbook in the serverless function bundle so Insights can use the checked-in 50-case sample when Supabase sample data is unavailable.
+
+1. Import the GitHub repository into Vercel and keep the repository root as the project root.
+2. Set the build command to `npm run build` and the output directory to `dist` (also declared in `vercel.json`).
+3. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in the Vercel project environment settings for every environment you deploy. These public client credentials are also read by the API function; never use a service-role key for either variable.
+4. Deploy the latest `main` commit. Confirm `/api/health` returns JSON, `/api/state` returns operational or explicitly labeled SIM data, `/api/route?from=A&to=B&k=3` returns routes, and `/api/ems-sample` returns 50 sample cases if the sample table is unavailable.
+
+The API function is stateless and does not run the long-lived simulation clock. For persistent operational writes and automatic dispatch lifecycle simulation, deploy the Express server using the Render or Railway instructions below; configure Supabase before treating any data as live. Without Supabase, fallback operational values are marked SIM and are not persisted between serverless function invocations.
+
 ## Render
 
 1. Push the `main` branch to GitHub.

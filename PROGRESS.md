@@ -62,3 +62,11 @@
 - Command KPI counts remain placeholders until the first operational-state response has been validated, rather than flashing zero values while loading.
 - Validation: `npm run lint`, `npm test` (15 tests), and `npm run build` passed. Production browser smoke verified strict script CSP, the Command map, workbook-backed Insights, and navigation back to Command without failed requests or runtime errors.
 - The verified fix was committed as `f380e66` and pushed to `origin/main`.
+
+## Current Request — 2026-10-18
+
+- Fixed the Vercel deployment gap: Vercel now routes `/api/*` to the existing Express API, which restores `/api/state`, `/api/route`, and `/api/ems-sample` instead of returning static-host 404 pages.
+- Included the checked-in EMS workbook in the Vercel function bundle and resolve it from the project root so Insights can return the anonymized 50-row sample when database sample rows are unavailable.
+- Disabled the long-lived simulation timer in the serverless handler. SIM fallback operational data is visible but not persistent between invocations; persistent operations and automatic dispatch progression require the documented Render/Railway server plus Supabase.
+- Added Vercel handler regressions for populated SIM state, route calculation, and Insights sample delivery.
+- Validation: targeted API/sample/security tests (8 passed), `npm run lint`, `npm run build`, and `git diff --check` passed. The existing build warnings about the solver externalization and large bundle remain.

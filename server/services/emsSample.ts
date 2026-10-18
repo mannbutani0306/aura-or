@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs';
-import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 
 export interface EmsSampleRow {
   readonly id: string;
@@ -12,7 +12,7 @@ export interface EmsSampleRow {
   readonly hour: number;
 }
 
-const workbookPath = fileURLToPath(new URL('../../data/tamil_nadu_ambulance_data.xlsx', import.meta.url));
+const workbookPath = path.resolve(process.cwd(), 'data', 'tamil_nadu_ambulance_data.xlsx');
 let sampleRowsPromise: Promise<readonly EmsSampleRow[]> | undefined;
 
 function columnIndex(sheet: ExcelJS.Worksheet, name: string): number {

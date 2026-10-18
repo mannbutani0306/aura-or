@@ -20,7 +20,7 @@ import { startSimulationClock, stopSimulationClock } from './services/simClock';
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 
-export function createApp(): Express {
+export function createApp(options: { startSimulationClock?: boolean } = {}): Express {
   const app = express();
   const appUrl = process.env.APP_URL?.trim();
   const appOrigin = appUrl ? new URL(appUrl).origin : undefined;
@@ -67,7 +67,7 @@ export function createApp(): Express {
     next(new HttpError(404, 'NOT_FOUND', 'API endpoint not found'));
   });
   app.use(errorHandler);
-  startSimulationClock();
+  if (options.startSimulationClock !== false) startSimulationClock();
   return app;
 }
 
