@@ -449,10 +449,10 @@ export function DispatchView({ onNavigate, presentStep = null, onPresentTakeaway
                 </span>
                 <span className="text-[var(--ink-muted)]">·</span>
                 <span className="tabular-nums font-bold">{solveResult.solveMs}ms</span>
-                <ConnectionChip status={connStatus} roundTripMs={roundTripMs} />
+                <ConnectionChip status={connStatus} roundTripMs={roundTripMs} isDemo={dataSource.isDemo()} />
               </div>
             ) : (
-              <ConnectionChip status={connStatus} roundTripMs={roundTripMs} />
+              <ConnectionChip status={connStatus} roundTripMs={roundTripMs} isDemo={dataSource.isDemo()} />
             )}
           </div>
         }

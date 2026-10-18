@@ -26,6 +26,19 @@ describe('HTTP hardening', () => {
     expect(denied.headers['access-control-allow-origin']).toBeUndefined();
   }, 20000);
 
+  it('allows the development bootstrap but keeps production script policy strict', async () => {
+    process.env.NODE_ENV = 'test';
+    const development = await request(createApp()).get('/api/health');
+    expect(development.headers['content-security-policy']).toContain("script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline'");
+    expect(development.headers['content-security-policy']).toContain("connect-src 'self' https: wss: ws:");
+
+    process.env.NODE_ENV = 'production';
+    const production = await request(createApp()).get('/api/health');
+    expect(production.headers['content-security-policy']).toContain("script-src 'self' 'wasm-unsafe-eval'");
+    expect(production.headers['content-security-policy']).not.toContain("script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline'");
+    expect(production.headers['content-security-policy']).not.toContain("connect-src 'self' https: wss: ws:");
+  }, 20000);
+
   it('rejects request bodies larger than one megabyte with 413', async () => {
     process.env.NODE_ENV = 'test';
     const app = createApp();

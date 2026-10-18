@@ -77,29 +77,35 @@ export function MaduraiMap({
 
   // Initialize Map
   useEffect(() => {
-    if (!mapContainerRef.current) return;
+    const container = mapContainerRef.current;
+    if (!container) return;
 
-    if (!mapInstanceRef.current) {
-      // Center of Madurai city: 9.9252, 78.1198
-      const map = L.map(mapContainerRef.current, {
-        center: [9.9252, 78.125],
-        zoom: 13,
-        zoomControl: false,
-        attributionControl: false,
-      });
+    // Center of Madurai city: 9.9252, 78.1198
+    const map = L.map(container, {
+      center: [9.9252, 78.125],
+      zoom: 13,
+      zoomControl: false,
+      attributionControl: false,
+    });
 
-      // Discreet attribution in bottom right
-      L.control
-        .attribution({ position: 'bottomright', prefix: false })
-        .addAttribution('&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>')
-        .addTo(map);
+    L.control
+      .attribution({ position: 'bottomright', prefix: false })
+      .addAttribution('&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>')
+      .addTo(map);
 
-      mapInstanceRef.current = map;
-      layersGroupRef.current = L.layerGroup().addTo(map);
-    }
+    mapInstanceRef.current = map;
+    layersGroupRef.current = L.layerGroup().addTo(map);
+    const resizeObserver = new ResizeObserver(() => map.invalidateSize({ pan: false }));
+    resizeObserver.observe(container);
+    const resizeFrame = window.requestAnimationFrame(() => map.invalidateSize({ pan: false }));
 
     return () => {
-      // Keep map instance mounted across renders
+      resizeObserver.disconnect();
+      window.cancelAnimationFrame(resizeFrame);
+      map.remove();
+      mapInstanceRef.current = null;
+      layersGroupRef.current = null;
+      tileLayerRef.current = null;
     };
   }, []);
 
@@ -410,7 +416,7 @@ export function MaduraiMap({
         marker.addTo(group);
       });
     });
-  }, [zones, roads, ambulances, emergencies, theme, onSelectZone, onSelectAmbulance, onSelectEmergency]);
+  }, [zones, roads, ambulances, emergencies, dispatches, simSpeed, currentTime, theme, onSelectZone, onSelectAmbulance, onSelectEmergency, onSelectDispatch]);
 
   return (
     <div className="relative w-full h-full min-h-[480px] overflow-hidden select-none">

@@ -54,6 +54,7 @@ export function CommandView({
   const [ambulances, setAmbulances] = useState<Ambulance[]>([]);
   const [emergencies, setEmergencies] = useState<Emergency[]>([]);
   const [dispatches, setDispatches] = useState<Dispatch[]>([]);
+  const [hasLoadedState, setHasLoadedState] = useState(dataSource.isReady());
   const [simSpeed, setSimSpeed] = useState<number>(1);
   const [currentTime, setCurrentTime] = useState<number>(Date.now());
 
@@ -138,6 +139,7 @@ export function CommandView({
       setEmergencies(e);
       setDispatches(d);
       setSimSpeed(s);
+      setHasLoadedState(dataSource.isReady());
     };
 
     loadData();
@@ -309,7 +311,7 @@ export function CommandView({
         <div className="p-2 sm:p-3.5 rounded-[16px] bg-[var(--surface-raised)] border-2 border-[var(--line)] shadow-[4px_4px_0_var(--shadow-ink)] flex items-center gap-2.5 sm:gap-6 overflow-x-auto">
           <div className="flex flex-col shrink-0">
             <span className="font-serif-display text-xl sm:text-3xl text-[var(--unit-available)] leading-none tabular-nums">
-              <AnimatedCounter value={availableCount} />
+              {hasLoadedState ? <AnimatedCounter value={availableCount} /> : '—'}
             </span>
             <span className="font-mono-numbers text-[9px] sm:text-[10px] text-[var(--ink-muted)] uppercase tracking-wider mt-0.5 sm:mt-1">
               available
@@ -320,7 +322,7 @@ export function CommandView({
 
           <div className="flex flex-col shrink-0">
             <span className="font-serif-display text-xl sm:text-3xl text-[var(--unit-busy)] leading-none tabular-nums">
-              <AnimatedCounter value={busyCount} />
+              {hasLoadedState ? <AnimatedCounter value={busyCount} /> : '—'}
             </span>
             <span className="font-mono-numbers text-[9px] sm:text-[10px] text-[var(--ink-muted)] uppercase tracking-wider mt-0.5 sm:mt-1">
               busy
@@ -331,7 +333,7 @@ export function CommandView({
 
           <div className="flex flex-col shrink-0">
             <span className="font-serif-display text-xl sm:text-3xl text-[var(--critical)] leading-none tabular-nums">
-              <AnimatedCounter value={pendingCount} />
+              {hasLoadedState ? <AnimatedCounter value={pendingCount} /> : '—'}
             </span>
             <span className="font-mono-numbers text-[9px] sm:text-[10px] text-[var(--ink-muted)] uppercase tracking-wider mt-0.5 sm:mt-1">
               pending
@@ -342,7 +344,7 @@ export function CommandView({
 
           <div className="flex flex-col shrink-0">
             <span className="font-serif-display text-xl sm:text-3xl text-[var(--ink)] leading-none tabular-nums">
-              <AnimatedCounter value={medianWaitMinutes} decimals={1} />
+              {hasLoadedState ? <AnimatedCounter value={medianWaitMinutes} decimals={1} /> : '—'}
             </span>
             <span className="font-mono-numbers text-[9px] sm:text-[10px] text-[var(--ink-muted)] uppercase tracking-wider mt-0.5 sm:mt-1">
               min wait
@@ -470,7 +472,7 @@ export function CommandView({
                   : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
               }`}
             >
-              Calls ({pendingCalls.length})
+              Calls ({hasLoadedState ? pendingCalls.length : '…'})
             </button>
             <button
               onClick={() => {
@@ -483,7 +485,7 @@ export function CommandView({
                   : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
               }`}
             >
-              Units ({ambulances.length})
+              Units ({hasLoadedState ? ambulances.length : '…'})
             </button>
           </div>
 

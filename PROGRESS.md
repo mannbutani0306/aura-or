@@ -52,3 +52,12 @@
 - Server refactor Step 1: all 16 original endpoint paths are registered in route modules; successful GET response keys were smoke-tested, invalid POST returned the structured validation envelope, lint passed, and the 52-case UI suite passed.
 - Step 2: live app_config maps to SLA 14.5, ALS penalty policy, penalty 6, unserved 60, no response cap, and service 8. A fresh-server non-persisting solve passed its HiGHS/Hungarian cross-check.
 - Step 3: routes were decoupled from ALS/SLA decision logic; `buildCostMatrix()` now owns penalty policy, response caps, queue penalties, queue reasons, and `slaBreach`/`alsMismatch` flags. HiGHS, Hungarian, FCFS, and priority-greedy all consume the same cost model, and matching panels surface assignment breaches and ALS mismatch markers.
+
+## Current Request — 2026-10-18
+
+- Fixed the development CSP so Vite/React can boot and HMR can connect, removed the CSP-blocked inline font handler, and kept production script policy strict.
+- Insights now falls back explicitly to the provided workbook's normalized, anonymized 50-row sample when Supabase EMS sample rows are unavailable. Workbook vs. database source is labelled; database query controls are hidden for workbook data.
+- Leaflet maps now invalidate size after layout changes and dispose cleanly when their views unmount. Realtime initialization no longer rebuilds an already-subscribed channel.
+- `/api/state` no longer treats failed core queries as empty data; optional event-log errors are exposed without preventing command-state loading.
+- Command KPI counts remain placeholders until the first operational-state response has been validated, rather than flashing zero values while loading.
+- Validation: `npm run lint`, `npm test` (15 tests), and `npm run build` passed. Production browser smoke verified strict script CSP, the Command map, workbook-backed Insights, and navigation back to Command without failed requests or runtime errors; push remains.

@@ -49,7 +49,7 @@ Weighted mode uses the generated triage weights Critical 5, High 3, Medium 2, Lo
 | `data/travel_times.csv` | Provided SAMPLE fixture | Legacy matrix for inspection only; the engine does not read it. Runtime travel is derived from `road_edges`. |
 | `data/tamil_nadu_ambulance_data.xlsx` | Provided SAMPLE workbook; sheet `dummy_ambulance_data` | Input workbook with case, triage, timing, and response fields. It is not displayed as a live operational feed. |
 | Supabase operational tables | Current configured database state | Fleet, calls, roads, zones, dispatches, and settings. The open demo RLS policy currently permits writes with the anon key. |
-| `ems_cases` | SAMPLE cohort, $n=50$ per project data contract | Insights sample source. It may show unavailable if the table/view is absent from the Supabase schema cache. |
+| `ems_cases` | SAMPLE cohort, $n=50$ per project data contract | Insights uses the Supabase sample when available and otherwise reads the 50-row provided workbook. The source is labelled; sample rows are not presented as live operational data. |
 | Shortest paths, travel matrix, objective, assignments, metrics | DERIVED | Computed by `engine/graph.ts` and `engine/assignment.ts` from current inputs. |
 | Monte Carlo evaluation | SIM | Generated from the displayed seed and scenario count; it is not an observed operational outcome. |
 
@@ -73,7 +73,7 @@ Each screen also has Paper/Night captures at desktop, tablet, and 390px in [`doc
 - Route blocking and dispatch lifecycle are reflected by the current graph and database transitions; the database triggers remain authoritative for persisted state.
 - The demo Supabase RLS policy lets anyone holding the public anon key write operational tables. The security next step is Supabase Auth with role-based policies and restricted writes.
 - The provided guide PDF/PPT was not present in this repository. The numbered evidence map is in [`docs/REPORT_MAP.md`](docs/REPORT_MAP.md); section/slide titles must be checked against the original guide.
-- EMS sample views are not always available in the configured PostgREST schema cache; the app displays an unavailable state instead of substituting values.
+- If the configured PostgREST schema does not expose `ems_cases`, Insights uses the provided 50-row workbook sample and labels that source instead of presenting it as live data.
 
 ## Run Locally
 

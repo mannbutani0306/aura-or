@@ -51,6 +51,7 @@ export class SupabaseDataSource implements DataSource {
   private lastSyncedAt: number | null = null;
   private lastError: string | null = null;
   private isDemoMode = false;
+  private stateReady = false;
 
   private listeners: Set<() => void> = new Set();
   private connectionListeners: Set<
@@ -59,7 +60,9 @@ export class SupabaseDataSource implements DataSource {
   private eventLogListeners: Set<(logs: EventLogRow[]) => void> = new Set();
 
   private channel: RealtimeChannel | null = null;
+  private readonly channelTopic = `aura_postgres_changes_${Date.now()}_${Math.random().toString(36).slice(2)}`;
   private pingInterval: ReturnType<typeof setInterval> | null = null;
+  private stateSyncInterval: ReturnType<typeof setInterval> | null = null;
   private isInitializing: boolean = false;
 
   constructor() {
@@ -68,6 +71,10 @@ export class SupabaseDataSource implements DataSource {
 
   isDemo(): boolean {
     return this.isDemoMode;
+  }
+
+  isReady(): boolean {
+    return this.stateReady;
   }
 
   getConnectionStatus(): ConnectionStatus {
@@ -144,14 +151,17 @@ export class SupabaseDataSource implements DataSource {
   }
 
   async init(): Promise<void> {
+    if (this.isInitializing) return;
     if (!hasSupabaseConfig || !supabase) {
       this.enableDemoMode();
       return;
     }
 
     await this.initialLoad();
-    this.setupRealtime();
-    this.startHeartbeat();
+    if (!this.isDemoMode) {
+      this.setupRealtime();
+      this.startHeartbeat();
+    }
   }
 
   enableDemoMode(): void {
@@ -178,7 +188,7 @@ export class SupabaseDataSource implements DataSource {
       { a: 'D', b: 'E', minutes: 8.0, blocked: false },
       { a: 'E', b: 'F', minutes: 10.0, blocked: false },
     ];
-    this.setConnection('live', 2, null);
+    this.setConnection('degraded', 0, 'SIMULATION MODE · No live database connection');
     this.notify();
 
     // Poll /api/state periodically to stay in sync with simulation server
@@ -191,6 +201,18 @@ export class SupabaseDataSource implements DataSource {
           throw new Error('State synchronization response is invalid');
         }
         const state = data as Record<string, unknown>;
+        if (
+          !Array.isArray(state.zones)
+          || !Array.isArray(state.roads)
+          || !Array.isArray(state.ambulances)
+          || !Array.isArray(state.emergencies)
+          || !Array.isArray(state.dispatches)
+        ) {
+          throw new Error('State synchronization response is missing operational data');
+        }
+        const warnings = Array.isArray(state.warnings)
+          ? state.warnings.filter((warning): warning is string => typeof warning === 'string')
+          : [];
         if (Array.isArray(state.ambulances)) {
           this.ambulances = stateRows(state.ambulances).map((row) => ({
             id: String(row.id),
@@ -244,20 +266,31 @@ export class SupabaseDataSource implements DataSource {
             kind: typeof row.kind === 'string' ? row.kind : 'EVENT',
             entityIds: Array.isArray(row.entity_ids ?? row.entityIds) ? (row.entity_ids ?? row.entityIds) as string[] : null,
             details: row.details && typeof row.details === 'object' ? row.details as Record<string, unknown> : typeof row.details === 'string' ? row.details : null,
-            createdAt: timestampValue(row.created_at) ?? Date.now(),
+            createdAt: timestampValue(row.created_at ?? row.timestamp) ?? Date.now(),
           }));
           this.notifyEventLogs();
         }
-          this.notify();
+        this.stateReady = true;
+        this.notify();
+        if (warnings.length) {
+          this.setConnection('degraded', this.roundTripMs, warnings.join(' · '));
+        } else if (!this.isDemoMode && this.lastError?.startsWith('event_log:')) {
+          this.setConnection('live', this.roundTripMs, null);
+        }
       } catch (reason: unknown) {
         const message = reason instanceof Error ? reason.message : 'State synchronization failed';
-        this.enableDemoMode();
-        this.setConnection('live', 2, `Using SIM fallback: ${message}`);
+        if (!this.isDemoMode) this.enableDemoMode();
+        if (hasSupabaseConfig && this.stateSyncInterval) {
+          clearInterval(this.stateSyncInterval);
+          this.stateSyncInterval = null;
+        }
+        this.setConnection('degraded', 0, `SIMULATION MODE · ${message}`);
       }
     };
 
     syncState();
-    setInterval(syncState, 1000);
+    if (this.stateSyncInterval) clearInterval(this.stateSyncInterval);
+    this.stateSyncInterval = setInterval(syncState, 1000);
   }
 
   async retryConnection(): Promise<void> {
@@ -275,6 +308,7 @@ export class SupabaseDataSource implements DataSource {
     this.isInitializing = true;
 
     const start = performance.now();
+    let eventLogError: string | null = null;
     try {
       const [
         zonesRes,
@@ -289,7 +323,7 @@ export class SupabaseDataSource implements DataSource {
         supabase.from('ambulances').select('*').order('id'),
         supabase.from('emergencies').select('*').order('requested_at', { ascending: false }),
         supabase.from('dispatches').select('*').order('dispatched_at', { ascending: false }),
-        supabase.from('event_log').select('*').order('created_at', { ascending: false }).limit(60),
+        supabase.from('event_log').select('*').limit(60),
       ]);
 
       if (zonesRes.error) throw new Error(`zones: ${zonesRes.error.message}`);
@@ -377,40 +411,38 @@ export class SupabaseDataSource implements DataSource {
       });
 
       // Map Event Logs (if table exists)
-      if (!eventsRes.error && eventsRes.data) {
+      if (eventsRes.error) {
+        eventLogError = `event_log: ${eventsRes.error.message}`;
+      } else if (eventsRes.data) {
         this.eventLogs = stateRows(eventsRes.data).map((row) => ({
           id: row.id !== undefined ? String(row.id) : '',
           kind: typeof row.kind === 'string' ? row.kind : 'EVENT',
           entityIds: Array.isArray(row.entity_ids ?? row.entityIds) ? (row.entity_ids ?? row.entityIds) as string[] : null,
           details: typeof row.details === 'string' ? row.details : typeof row.payload === 'string' ? row.payload : null,
-          createdAt: timestampValue(row.created_at) ?? Date.now(),
+          createdAt: timestampValue(row.created_at ?? row.timestamp) ?? Date.now(),
         }));
         this.notifyEventLogs();
       }
 
       this.isDemoMode = false;
+      this.stateReady = true;
       const elapsed = Math.round(performance.now() - start);
-      this.setConnection('live', elapsed, null);
+      this.setConnection(eventLogError ? 'degraded' : 'live', elapsed, eventLogError);
       this.notify();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to connect to Supabase';
       this.enableDemoMode();
-      this.setConnection('live', 2, `Using SIM fallback: ${message}`);
+      this.setConnection('degraded', 0, `SIMULATION MODE · ${message}`);
     } finally {
       this.isInitializing = false;
     }
   }
 
   private setupRealtime() {
-    if (!supabase) return;
-
-    if (this.channel) {
-      supabase.removeChannel(this.channel);
-      this.channel = null;
-    }
+    if (!supabase || this.channel) return;
 
     this.channel = supabase
-      .channel('aura_postgres_changes')
+      .channel(this.channelTopic)
       // 1. Ambulances Realtime
       .on(
         'postgres_changes',

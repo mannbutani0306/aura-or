@@ -8,9 +8,11 @@ import { EmsCase, EMS_SAMPLE_LABEL } from '../../data';
 interface ChartProps {
   cases: readonly EmsCase[];
   sql: string;
+  sourceLabel?: string;
+  canCopyQuery?: boolean;
 }
 
-function SamplePanel({ title, sql, cases, children }: React.PropsWithChildren<{ title: string; sql: string; cases: readonly EmsCase[] }>) {
+function SamplePanel({ title, sql, cases, sourceLabel = EMS_SAMPLE_LABEL, canCopyQuery = true, children }: React.PropsWithChildren<{ title: string; sql: string; cases: readonly EmsCase[]; sourceLabel?: string; canCopyQuery?: boolean }>) {
   const [copyState, setCopyState] = useState<'ready' | 'copied' | 'failed'>('ready');
   const copySql = async () => {
     try {
@@ -26,18 +28,20 @@ function SamplePanel({ title, sql, cases, children }: React.PropsWithChildren<{ 
       title={title}
       action={
         <div className="flex items-center gap-2">
-          <Stamp variant="STAT" color="available">{EMS_SAMPLE_LABEL}</Stamp>
+          <Stamp variant="STAT" color="available">{sourceLabel}</Stamp>
           <span className="font-mono-numbers text-[10px] tabular-nums text-[var(--ink-muted)]">n={cases.length}</span>
-          <Tooltip content={copyState === 'failed' ? 'Clipboard unavailable' : copyState === 'copied' ? 'Copied' : 'Copy SQL'}>
-            <button
-              type="button"
-              aria-label="Copy SQL"
-              onClick={() => void copySql()}
-              className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] shadow-[2px_2px_0_var(--shadow-ink)] transition-transform hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-none focus-ring"
-            >
-              {copyState === 'copied' ? <Check size={14} /> : <Copy size={14} />}
-            </button>
-          </Tooltip>
+          {canCopyQuery && (
+            <Tooltip content={copyState === 'failed' ? 'Clipboard unavailable' : copyState === 'copied' ? 'Copied' : 'Copy query'}>
+              <button
+                type="button"
+                aria-label="Copy query"
+                onClick={() => void copySql()}
+                className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] shadow-[2px_2px_0_var(--shadow-ink)] transition-transform hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-none focus-ring"
+              >
+                {copyState === 'copied' ? <Check size={14} /> : <Copy size={14} />}
+              </button>
+            </Tooltip>
+          )}
         </div>
       }
     >
@@ -46,7 +50,7 @@ function SamplePanel({ title, sql, cases, children }: React.PropsWithChildren<{ 
   );
 }
 
-export function ResponseDotStrip({ cases, sql }: ChartProps) {
+export function ResponseDotStrip({ cases, sql, sourceLabel, canCopyQuery }: ChartProps) {
   const width = 760;
   const height = 150;
   const margin = { left: 28, right: 24, top: 18, bottom: 30 };
@@ -58,7 +62,7 @@ export function ResponseDotStrip({ cases, sql }: ChartProps) {
   const y = scaleLinear().domain([0, Math.max(1, cases.length - 1)]).range([height - margin.bottom, margin.top]);
 
   return (
-    <SamplePanel title="Response / benchmark" sql={sql} cases={cases}>
+    <SamplePanel title="Response / benchmark" sql={sql} cases={cases} sourceLabel={sourceLabel} canCopyQuery={canCopyQuery}>
       {cases.length === 0 ? <ChartEmpty /> : (
         <div className="overflow-x-auto">
           <svg viewBox={`0 0 ${width} ${height}`} className="min-w-[540px] w-full" role="img" aria-label="Every case response time compared with the sample benchmark">
@@ -93,7 +97,7 @@ interface HourDatum extends DefaultArcObject {
   slaRate: number;
 }
 
-export function HourDemandClock({ cases, sql }: ChartProps) {
+export function HourDemandClock({ cases, sql, sourceLabel, canCopyQuery }: ChartProps) {
   const values = useMemo<HourDatum[]>(() => Array.from({ length: 24 }, (_, hour) => {
     const hourly = cases.filter((item) => item.hour === hour);
     return {
@@ -121,7 +125,7 @@ export function HourDemandClock({ cases, sql }: ChartProps) {
   const [hoveredHour, setHoveredHour] = useState<number | null>(null);
 
   return (
-    <SamplePanel title="Hour-of-day demand" sql={sql} cases={cases}>
+    <SamplePanel title="Hour-of-day demand" sql={sql} cases={cases} sourceLabel={sourceLabel} canCopyQuery={canCopyQuery}>
       {cases.length === 0 ? <ChartEmpty /> : (
         <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-around">
           <svg viewBox="0 0 260 260" className="w-full max-w-[260px]" role="img" aria-label="Calls per hour and hourly benchmark hit rate">
@@ -151,7 +155,7 @@ export function HourDemandClock({ cases, sql }: ChartProps) {
   );
 }
 
-export function TriageTimingBars({ cases, sql }: ChartProps) {
+export function TriageTimingBars({ cases, sql, sourceLabel, canCopyQuery }: ChartProps) {
   const groups = useMemo(() => {
     const names = [...new Set(cases.map((item) => item.triage))];
     return names.map((name) => {
@@ -168,7 +172,7 @@ export function TriageTimingBars({ cases, sql }: ChartProps) {
   const benchmark = cases.length ? cases.reduce((sum, item) => sum + item.benchmarkSec, 0) / cases.length / 60 : 0;
 
   return (
-    <SamplePanel title="Triage timing" sql={sql} cases={cases}>
+    <SamplePanel title="Triage timing" sql={sql} cases={cases} sourceLabel={sourceLabel} canCopyQuery={canCopyQuery}>
       {groups.length === 0 ? <ChartEmpty /> : (
         <div className="overflow-x-auto">
           <svg viewBox={`0 0 740 ${Math.max(160, groups.length * 48 + 38)}`} className="min-w-[540px] w-full" role="img" aria-label="Average and worst response times by triage">
@@ -197,7 +201,7 @@ export function TriageTimingBars({ cases, sql }: ChartProps) {
   );
 }
 
-export function TypeRankList({ cases, sql }: ChartProps) {
+export function TypeRankList({ cases, sql, sourceLabel, canCopyQuery }: ChartProps) {
   const groups = useMemo(() => {
     const counts = new Map<string, number>();
     cases.forEach((item) => counts.set(item.callType, (counts.get(item.callType) ?? 0) + 1));
@@ -206,7 +210,7 @@ export function TypeRankList({ cases, sql }: ChartProps) {
   const max = Math.max(1, ...groups.map(([, count]) => count));
 
   return (
-    <SamplePanel title="Emergency types" sql={sql} cases={cases}>
+    <SamplePanel title="Emergency types" sql={sql} cases={cases} sourceLabel={sourceLabel} canCopyQuery={canCopyQuery}>
       {groups.length === 0 ? <ChartEmpty /> : (
         <ol className="flex flex-col gap-3">
           {groups.map(([name, count], index) => (

@@ -16,7 +16,7 @@
 14. **What do FCFS and greedy represent?** They are deterministic comparison baselines: nearest feasible unit in arrival order, and priority/arrival ordered greedy assignment.
 15. **What metrics are shown?** Served/queued, weighted total, average and critical average response, worst response, SLA hits/breaches, and unit utilization.
 16. **Where does runtime data come from?** Current operational rows and config come from Supabase; without Supabase config the server/client use labelled starter SIM state.
-17. **What is SAMPLE data?** The provided CSV/workbook and the configured 50-row `ems_cases` cohort; they are not silently mixed with simulated outcomes.
+17. **What is SAMPLE data?** The provided CSV/workbook and the configured 50-row `ems_cases` cohort. Insights labels whether it read the workbook or database; neither is presented as live operational data.
 18. **What is SIM data?** Seeded Monte Carlo scenarios and the local simulation state; generated figures are labelled SIM.
 19. **How is Monte Carlo reproducible?** A seeded Mulberry32 generator controls scenario construction; scenario timestamps are deterministic from seed and index.
 20. **Why use server-sent events for evaluation?** The API can stream scenario progress while returning a single summary at completion.

@@ -5,6 +5,8 @@ interface ConnectionChipProps {
   status: ConnectionStatus;
   roundTripMs?: number;
   lastSyncedAt?: number | null;
+  isDemo?: boolean;
+  error?: string | null;
   className?: string;
   onClick?: () => void;
   compact?: boolean;
@@ -14,6 +16,8 @@ export function ConnectionChip({
   status,
   roundTripMs = 0,
   lastSyncedAt,
+  isDemo = false,
+  error = null,
   className = '',
   onClick,
   compact = false,
@@ -49,19 +53,22 @@ export function ConnectionChip({
   };
 
   const config = statusConfig[status];
+  const label = isDemo ? 'SIM MODE' : config.label;
+  const accessibleLabel = isDemo ? 'Connection status: simulation mode' : `Connection status: ${status}`;
 
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={!onClick}
-      aria-label={`Connection status: ${status}`}
+      aria-label={accessibleLabel}
+      title={error ?? (isDemo ? 'Showing local simulation data; no live database connection' : undefined)}
       className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border-2 border-[var(--line)] shadow-[2px_2px_0_var(--shadow-ink)] text-[10px] font-mono-numbers font-bold tracking-wider uppercase select-none transition-all ${
         config.bgClass
       } ${config.textClass} ${onClick ? 'cursor-pointer hover:-translate-y-0.5 active:translate-y-0.5' : 'cursor-default'} ${className}`}
     >
       <span className={`w-2 h-2 rounded-full border border-[var(--line)] ${config.dotClass}`} />
-      <span className={compact ? 'hidden sm:inline' : ''}>{config.label}</span>
+      <span className={compact ? 'hidden sm:inline' : ''}>{label}</span>
     </button>
   );
 }

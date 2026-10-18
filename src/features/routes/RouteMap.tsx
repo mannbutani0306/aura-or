@@ -36,24 +36,36 @@ export function RouteMap({
 
   // Initialize Map
   useEffect(() => {
-    if (!mapContainerRef.current) return;
+    const container = mapContainerRef.current;
+    if (!container) return;
 
-    if (!mapInstanceRef.current) {
-      const map = L.map(mapContainerRef.current, {
-        center: [9.9252, 78.132],
-        zoom: 13,
-        zoomControl: false,
-        attributionControl: false,
-      });
+    const map = L.map(container, {
+      center: [9.9252, 78.132],
+      zoom: 13,
+      zoomControl: false,
+      attributionControl: false,
+    });
 
-      L.control
-        .attribution({ position: 'bottomright', prefix: false })
-        .addAttribution('&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>')
-        .addTo(map);
+    L.control
+      .attribution({ position: 'bottomright', prefix: false })
+      .addAttribution('&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>')
+      .addTo(map);
 
-      mapInstanceRef.current = map;
-      layersGroupRef.current = L.layerGroup().addTo(map);
-    }
+    mapInstanceRef.current = map;
+    layersGroupRef.current = L.layerGroup().addTo(map);
+    const resizeObserver = new ResizeObserver(() => map.invalidateSize({ pan: false }));
+    resizeObserver.observe(container);
+    const resizeFrame = window.requestAnimationFrame(() => map.invalidateSize({ pan: false }));
+
+    return () => {
+      resizeObserver.disconnect();
+      window.cancelAnimationFrame(resizeFrame);
+      map.remove();
+      mapInstanceRef.current = null;
+      layersGroupRef.current = null;
+      tileLayerRef.current = null;
+      vehicleMarkerRef.current = null;
+    };
   }, []);
 
   // Update Tile Layer based on theme

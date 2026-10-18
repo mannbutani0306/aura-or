@@ -446,7 +446,7 @@ export default function App() {
           <Wordmark size="md" onClick={() => handleNavigate('command')} />
           <div className="hidden sm:block h-5 w-[2px] bg-[var(--line)] opacity-30" />
           <EcgStrip className="hidden lg:inline-flex" state={ecgState} showStatusLabel />
-          <ConnectionChip status={connStatus} roundTripMs={roundTripMs} lastSyncedAt={lastSyncedAt} compact />
+          <ConnectionChip status={connStatus} roundTripMs={roundTripMs} lastSyncedAt={lastSyncedAt} isDemo={dataSource.isDemo()} error={lastError} compact />
         </div>
 
         {/* Center: Desktop Navigation Dock (pills with 2px line and hard shadows) */}

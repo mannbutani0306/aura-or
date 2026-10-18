@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { Emergency } from '../../engine/types';
-import { asyncHandler, postSchemas, validateBody } from '../services/http';
+import { asyncHandler, HttpError, postSchemas, validateBody } from '../services/http';
 import { resetFallbackState, supabase, fallbackState } from '../services/supabase';
 import { getSimSpeed } from '../services/simClock';
 
@@ -23,8 +23,20 @@ stateRouter.get('/state', asyncHandler(async (_request, response) => {
       supabase.from('dispatches').select('*').order('dispatched_at', { ascending: false }),
       supabase.from('zones').select('*'),
       supabase.from('road_edges').select('*'),
-      supabase.from('event_log').select('*').order('created_at', { ascending: false }).limit(60),
+      supabase.from('event_log').select('*').limit(60),
     ]);
+    const failures = [
+      ['ambulances', ambulances.error],
+      ['emergencies', emergencies.error],
+      ['dispatches', dispatches.error],
+      ['zones', zones.error],
+      ['road_edges', roads.error],
+    ] as const;
+    const failedQuery = failures.find(([, error]) => error !== null);
+    if (failedQuery) {
+      const [table, error] = failedQuery;
+      if (error) throw new HttpError(503, 'STATE_UNAVAILABLE', `${table}: ${error.message}`);
+    }
     return response.json({
       ok: true,
       ambulances: ambulances.data || [],
@@ -33,6 +45,7 @@ stateRouter.get('/state', asyncHandler(async (_request, response) => {
       zones: zones.data || [],
       roads: roads.data || [],
       events: events.data || [],
+      warnings: events.error ? [`event_log: ${events.error.message}`] : [],
       simSpeed: getSimSpeed(),
     });
   }

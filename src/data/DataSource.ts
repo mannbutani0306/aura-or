@@ -18,6 +18,9 @@ export interface EventLogRow {
 }
 
 export interface DataSource {
+  isDemo(): boolean;
+  isReady(): boolean;
+
   // Read operations
   getZones(): Promise<Zone[]>;
   getRoads(): Promise<RoadEdge[]>;

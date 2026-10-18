@@ -6,10 +6,7 @@ import { downloadCsv } from '../../utils/fileExports';
 import {
   EmsCase,
   EMS_SAMPLE_LABEL,
-  getEmsCases,
-  getEmsByHour,
-  getEmsByType,
-  getEmsSlaByTriage,
+  getEmsSample,
 } from '../../data';
 import {
   HourDemandClock,
@@ -48,7 +45,8 @@ export function InsightsView({ onNavigate, presentStep = null }: InsightsViewPro
   const [cases, setCases] = useState<readonly EmsCase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [viewWarning, setViewWarning] = useState<string | null>(null);
+  const [sampleSource, setSampleSource] = useState<'database' | 'workbook'>('workbook');
+  const [sourceWarning, setSourceWarning] = useState<string | null>(null);
   const [district, setDistrict] = useState<FilterValue>('All');
   const [callType, setCallType] = useState<FilterValue>('All');
 
@@ -56,19 +54,16 @@ export function InsightsView({ onNavigate, presentStep = null }: InsightsViewPro
     let isCurrent = true;
     const load = async () => {
       try {
-        const rows = await getEmsCases();
-        if (isCurrent) setCases(rows);
+        const sample = await getEmsSample();
+        if (isCurrent) {
+          setCases(sample.cases);
+          setSampleSource(sample.source);
+          setSourceWarning(sample.warning);
+        }
       } catch (reason: unknown) {
         if (isCurrent) setError(reason instanceof Error ? reason.message : 'Unable to load EMS sample');
-      }
-
-      const views = await Promise.allSettled([getEmsByHour(), getEmsByType(), getEmsSlaByTriage()]);
-      if (isCurrent) {
-        const failures = views.flatMap((result) => result.status === 'rejected'
-          ? [result.reason instanceof Error ? result.reason.message : 'An EMS summary view is unavailable']
-          : []);
-        setViewWarning(failures.length ? failures.join(' · ') : null);
-        setIsLoading(false);
+      } finally {
+        if (isCurrent) setIsLoading(false);
       }
     };
     void load();
@@ -112,7 +107,7 @@ export function InsightsView({ onNavigate, presentStep = null }: InsightsViewPro
   const benchmarkColumn = sqlIdentifier(sourceColumns?.benchmarkSec ?? 'benchmark_sec');
   const triageColumn = sqlIdentifier(sourceColumns?.triage ?? 'triage');
   const callTypeColumn = sqlIdentifier(sourceColumns?.callType ?? 'call_type');
-  const hourColumn = sqlIdentifier(sourceColumns?.hour ?? 'call_timestamp');
+  const hourColumn = sqlIdentifier(sourceColumns?.hour ?? 'hour');
   const hourExpression = sourceColumns?.hourUsesTimestamp === false
     ? `${hourColumn}::integer`
     : `EXTRACT(HOUR FROM ${hourColumn})`;
@@ -140,7 +135,7 @@ export function InsightsView({ onNavigate, presentStep = null }: InsightsViewPro
         </div>
       ) : (
         <>
-          {viewWarning && <div role="status" className="border-l-4 border-[var(--high)] bg-[var(--surface-raised)] px-3 py-2 font-mono-numbers text-[10px] text-[var(--ink-muted)]">Summary views unavailable; displayed metrics are calculated from the case rows. {viewWarning}</div>}
+          {sourceWarning && <div role="status" className="border-l-4 border-[var(--high)] bg-[var(--surface-raised)] px-3 py-2 font-mono-numbers text-[10px] text-[var(--ink-muted)]">{sourceWarning}</div>}
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-y-2 border-[var(--line)] py-3">
             <div className="flex flex-wrap items-center gap-2">
@@ -163,14 +158,14 @@ export function InsightsView({ onNavigate, presentStep = null }: InsightsViewPro
                 <span className="font-mono-numbers text-xs text-[var(--ink-muted)]">{filteredCases.filter((item) => item.responseSec <= item.benchmarkSec).length}/{filteredCases.length} cases</span>
               </div>
             </div>
-            <Stamp variant="STAT" color="available">{EMS_SAMPLE_LABEL} · n={filteredCases.length}</Stamp>
+            <Stamp variant="STAT" color="available">{sampleSource === 'workbook' ? 'WORKBOOK SAMPLE' : EMS_SAMPLE_LABEL} · n={filteredCases.length}</Stamp>
           </section>
 
           <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-            <ResponseDotStrip cases={filteredCases} sql={responseSql} />
-            <HourDemandClock cases={filteredCases} sql={hourSql} />
-            <TriageTimingBars cases={filteredCases} sql={triageSql} />
-            <TypeRankList cases={filteredCases} sql={typeSql} />
+            <ResponseDotStrip cases={filteredCases} sql={responseSql} sourceLabel={sampleSource === 'workbook' ? 'WORKBOOK SAMPLE' : EMS_SAMPLE_LABEL} canCopyQuery={sampleSource === 'database'} />
+            <HourDemandClock cases={filteredCases} sql={hourSql} sourceLabel={sampleSource === 'workbook' ? 'WORKBOOK SAMPLE' : EMS_SAMPLE_LABEL} canCopyQuery={sampleSource === 'database'} />
+            <TriageTimingBars cases={filteredCases} sql={triageSql} sourceLabel={sampleSource === 'workbook' ? 'WORKBOOK SAMPLE' : EMS_SAMPLE_LABEL} canCopyQuery={sampleSource === 'database'} />
+            <TypeRankList cases={filteredCases} sql={typeSql} sourceLabel={sampleSource === 'workbook' ? 'WORKBOOK SAMPLE' : EMS_SAMPLE_LABEL} canCopyQuery={sampleSource === 'database'} />
           </div>
 
           <section aria-labelledby="findings-title" className="border-t-2 border-[var(--line)] pt-4">

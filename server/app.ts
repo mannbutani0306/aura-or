@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { configRouter } from './routes/config';
 import { dispatchRouter } from './routes/dispatch';
+import { emsRouter } from './routes/ems';
 import { evaluateRouter } from './routes/evaluate';
 import { exportRouter } from './routes/export';
 import { healthRouter } from './routes/health';
@@ -28,11 +29,15 @@ export function createApp(): Express {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'wasm-unsafe-eval'"],
+        scriptSrc: [
+          "'self'",
+          "'wasm-unsafe-eval'",
+          ...(process.env.NODE_ENV === 'production' ? [] : ["'unsafe-inline'"]),
+        ],
         styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
         fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'],
         imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
-        connectSrc: ["'self'", 'https:', 'wss:'],
+        connectSrc: ["'self'", 'https:', 'wss:', ...(process.env.NODE_ENV === 'production' ? [] : ['ws:'])],
         workerSrc: ["'self'", 'blob:'],
         objectSrc: ["'none'"],
       },
@@ -48,6 +53,7 @@ export function createApp(): Express {
   app.use(compression());
 
   app.use('/api', healthRouter);
+  app.use('/api', emsRouter);
   app.use('/api', configRouter);
   app.use('/api', evaluateRouter);
   app.use('/api', exportRouter);

@@ -24,6 +24,12 @@ export interface EmsCase {
   readonly sourceColumns: EmsSourceColumns;
 }
 
+export interface EmsSample {
+  readonly cases: readonly EmsCase[];
+  readonly source: 'database' | 'workbook';
+  readonly warning: string | null;
+}
+
 export type EmsViewRow = Readonly<Record<string, unknown>>;
 
 const pick = (row: Readonly<Record<string, unknown>>, keys: readonly string[]): unknown => {
@@ -133,10 +139,30 @@ const readView = async (name: string): Promise<readonly EmsViewRow[]> => {
 };
 
 export async function getEmsCases(): Promise<readonly EmsCase[]> {
-  if (!supabase) throw new Error('EMS sample unavailable: Supabase is not configured');
-  const { data, error } = await supabase.from('ems_cases').select('*');
-  if (error) throw new Error(`ems_cases: ${error.message}`);
-  return (data ?? []).map((row: unknown) => normalizeCase(row));
+  return (await getEmsSample()).cases;
+}
+
+export async function getEmsSample(): Promise<EmsSample> {
+  const response = await fetch('/api/ems-sample');
+  if (!response.ok) throw new Error(`Provided EMS workbook sample: ${await response.text()}`);
+  const payload: unknown = await response.json();
+  if (
+    !payload
+    || typeof payload !== 'object'
+    || !('source' in payload)
+    || (payload.source !== 'database' && payload.source !== 'workbook')
+    || !('cases' in payload)
+    || !Array.isArray(payload.cases)
+    || !('warning' in payload)
+    || (payload.warning !== null && typeof payload.warning !== 'string')
+  ) {
+    throw new Error('Provided EMS workbook sample returned an invalid response');
+  }
+  return {
+    cases: payload.cases.map((row: unknown) => normalizeCase(row)),
+    source: payload.source,
+    warning: payload.warning,
+  };
 }
 
 export function getEmsByHour(): Promise<readonly EmsViewRow[]> {
