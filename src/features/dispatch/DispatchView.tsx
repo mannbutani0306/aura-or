@@ -44,11 +44,12 @@ import { downloadCsv } from '../../utils/fileExports';
 
 interface DispatchViewProps {
   onNavigate: (route: string) => void;
+  onResetScenario: () => void;
   presentStep?: number | null;
   onPresentTakeaway?: (summary: string) => void;
 }
 
-export function DispatchView({ onNavigate, presentStep = null, onPresentTakeaway }: DispatchViewProps) {
+export function DispatchView({ onNavigate, onResetScenario, presentStep = null, onPresentTakeaway }: DispatchViewProps) {
   // Domain Data State
   const [ambulances, setAmbulances] = useState<Ambulance[]>([]);
   const [emergencies, setEmergencies] = useState<Emergency[]>([]);
@@ -578,7 +579,7 @@ export function DispatchView({ onNavigate, presentStep = null, onPresentTakeaway
         <Panel title="Weighted Time" badge="DERIVED">
           <div className="flex items-baseline gap-1.5">
             <span className="font-serif-display text-3xl sm:text-4xl text-[var(--ink)] tabular-nums">
-              <AnimatedCounter value={activeMetrics.totalWeightedMin} decimals={1} />
+              {solveResult ? activeMetrics.totalWeightedMin.toFixed(1) : '—'}
             </span>
             <span className="font-mono-numbers text-xs text-[var(--ink-muted)]">min</span>
           </div>
@@ -590,7 +591,7 @@ export function DispatchView({ onNavigate, presentStep = null, onPresentTakeaway
         <Panel title="Average Response" badge="DERIVED">
           <div className="flex items-baseline gap-1.5">
             <span className="font-serif-display text-3xl sm:text-4xl text-[var(--unit-available)] tabular-nums">
-              <AnimatedCounter value={activeMetrics.avgResponseMin} decimals={1} />
+              {solveResult ? activeMetrics.avgResponseMin.toFixed(1) : '—'}
             </span>
             <span className="font-mono-numbers text-xs text-[var(--ink-muted)]">min</span>
           </div>
@@ -606,7 +607,7 @@ export function DispatchView({ onNavigate, presentStep = null, onPresentTakeaway
                 slaBenchmarkMin !== null && activeMetrics.worstResponseMin > slaBenchmarkMin ? 'text-[var(--critical)]' : 'text-[var(--ink)]'
               }`}
             >
-              <AnimatedCounter value={activeMetrics.worstResponseMin} decimals={1} />
+              {solveResult ? activeMetrics.worstResponseMin.toFixed(1) : '—'}
             </span>
             <span className="font-mono-numbers text-xs text-[var(--ink-muted)]">max min</span>
           </div>
@@ -618,7 +619,7 @@ export function DispatchView({ onNavigate, presentStep = null, onPresentTakeaway
         <Panel title="Served Units" badge={dataSource.isDemo() ? 'SIMULATED' : 'REAL SAMPLE'}>
           <div className="flex items-baseline gap-1.5">
             <span className="font-serif-display text-3xl sm:text-4xl text-[var(--ink)] tabular-nums">
-              <AnimatedCounter value={activeMetrics.servedCount} />/{activeMetrics.totalCount}
+              {solveResult ? activeMetrics.servedCount : '—'}/{activeMetrics.totalCount}
             </span>
             <span className="font-mono-numbers text-xs text-[var(--ink-muted)]">served</span>
           </div>
@@ -630,7 +631,7 @@ export function DispatchView({ onNavigate, presentStep = null, onPresentTakeaway
         <Panel title="SLA Compliance" badge="DERIVED">
           <div className="flex items-baseline gap-1.5">
             <span className="font-serif-display text-3xl sm:text-4xl text-[var(--unit-available)] tabular-nums">
-              {activeMetrics.slaHitsCount === null ? '—' : <AnimatedCounter value={activeMetrics.slaHitsCount} />}/{activeMetrics.servedCount}
+              {!solveResult || activeMetrics.slaHitsCount === null ? '—' : activeMetrics.slaHitsCount}/{solveResult ? activeMetrics.servedCount : '—'}
             </span>
             <span className="font-mono-numbers text-xs text-[var(--ink-muted)]">in SLA</span>
           </div>
@@ -639,6 +640,12 @@ export function DispatchView({ onNavigate, presentStep = null, onPresentTakeaway
           </span>
         </Panel>
       </div>
+
+      {solveResult && solveResult.unserved.length > 0 && (
+        <div role="status" className="border-l-4 border-[var(--high)] bg-[var(--surface-raised)] px-3 py-2 font-mono-numbers text-[10px] text-[var(--ink-muted)]">
+          {solveResult.unserved.length} call{solveResult.unserved.length === 1 ? '' : 's'} queued. See the Unserved Queue for the reason for each call.
+        </div>
+      )}
 
       {/* Baseline Comparison Split Panel (When "Compare" is Active) */}
       {isCompareOpen && solveResult && (
@@ -751,7 +758,27 @@ export function DispatchView({ onNavigate, presentStep = null, onPresentTakeaway
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--line)]">
-                    {availableAmbulances.map((amb, rIdx) => {
+                    {availableAmbulances.length === 0 || pendingEmergencies.length === 0 ? (
+                      <tr>
+                        <td colSpan={Math.max(1, pendingEmergencies.length + 1)} className="px-4 py-8 text-center">
+                          <p role="status" className="font-mono-numbers text-[11px] font-bold text-[var(--ink)]">
+                            {availableAmbulances.length === 0
+                              ? 'No available units. Reset the scenario to restore the baseline fleet.'
+                              : 'No pending calls. Register a call from Command to build the matrix.'}
+                          </p>
+                          {availableAmbulances.length === 0 && (
+                            <Button variant="secondary" size="sm" onClick={onResetScenario} className="mt-3">
+                              Reset scenario
+                            </Button>
+                          )}
+                          {pendingEmergencies.length === 0 && (
+                            <Button variant="secondary" size="sm" onClick={() => onNavigate('command')} className="mt-3">
+                              Go to Command
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    ) : availableAmbulances.map((amb, rIdx) => {
                       const isScanningThisRow = scanStep === rIdx;
                       const isRowHovered = hoveredCell?.ambId === amb.id;
 
@@ -901,8 +928,8 @@ export function DispatchView({ onNavigate, presentStep = null, onPresentTakeaway
 
                 {/* Center SVG: Curved Connecting Ribbons */}
                 <div className="absolute inset-0 pointer-events-none">
-                  <svg className="w-full h-full overflow-visible">
-                    {currentAssignments.map((assign, index) => {
+                  <svg viewBox="0 0 1000 400" preserveAspectRatio="none" className="w-full h-full overflow-visible">
+                    {currentAssignments.map((assign) => {
                       const em = emergencyMap.get(assign.emergencyId);
                       if (!em) return null;
 
@@ -918,21 +945,22 @@ export function DispatchView({ onNavigate, presentStep = null, onPresentTakeaway
                       // Thickness by priority weight (1=2.5px, 5=7px)
                       const strokeWidth = Math.max(2.5, assign.weight * 1.5);
 
-                      // Calculate vertical percentage anchor positions
+                      // SVG path data uses numeric viewBox coordinates, not CSS percentages.
                       const ambIdx = availableAmbulances.findIndex((a) => a.id === assign.ambulanceId);
                       const emIdx = pendingEmergencies.findIndex((e) => e.id === assign.emergencyId);
 
                       const totalAmbs = Math.max(1, availableAmbulances.length);
                       const totalEms = Math.max(1, pendingEmergencies.length);
 
-                      const y1Pct = ((ambIdx + 0.5) / totalAmbs) * 100;
-                      const y2Pct = ((emIdx + 0.5) / totalEms) * 100;
+                      const y1 = ((ambIdx + 0.5) / totalAmbs) * 400;
+                      const y2 = ((emIdx + 0.5) / totalEms) * 400;
+                      const ribbonPath = `M 160 ${y1} C 300 ${y1}, 700 ${y2}, 840 ${y2}`;
 
                       return (
                         <g key={assign.emergencyId} className="transition-all duration-300">
                           {/* Shadow ribbon */}
                           <path
-                            d={`M 115 ${y1Pct}% C 240 ${y1Pct}%, 300 ${y2Pct}%, calc(100% - 145px) ${y2Pct}%`}
+                            d={ribbonPath}
                             fill="none"
                             stroke={color}
                             strokeWidth={strokeWidth + 2}
@@ -941,7 +969,7 @@ export function DispatchView({ onNavigate, presentStep = null, onPresentTakeaway
                           />
                           {/* Core colored ribbon */}
                           <path
-                            d={`M 115 ${y1Pct}% C 240 ${y1Pct}%, 300 ${y2Pct}%, calc(100% - 145px) ${y2Pct}%`}
+                            d={ribbonPath}
                             fill="none"
                             stroke={color}
                             strokeWidth={strokeWidth}
@@ -951,10 +979,10 @@ export function DispatchView({ onNavigate, presentStep = null, onPresentTakeaway
                           />
                           {assign.slaBreach && (
                             <line
-                              x1="50%"
-                              x2="50%"
-                              y1={`${(y1Pct + y2Pct) / 2 - 2}%`}
-                              y2={`${(y1Pct + y2Pct) / 2 + 2}%`}
+                              x1="500"
+                              x2="500"
+                              y1={`${(y1 + y2) / 2 - 3}`}
+                              y2={`${(y1 + y2) / 2 + 3}`}
                               stroke="var(--critical)"
                               strokeWidth="4"
                               aria-label="SLA breach"
@@ -962,8 +990,8 @@ export function DispatchView({ onNavigate, presentStep = null, onPresentTakeaway
                           )}
                           {assign.alsMismatch && (
                             <text
-                              x="50%"
-                              y={`${(y1Pct + y2Pct) / 2 - 2}%`}
+                              x="500"
+                              y={`${(y1 + y2) / 2 - 8}`}
                               textAnchor="middle"
                               fill="var(--critical)"
                               stroke="var(--surface-raised)"

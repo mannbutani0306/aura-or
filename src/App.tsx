@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useState, useEffect, useCallback, useMemo } from 'react';
+import { RotateCcw } from 'lucide-react';
 import {
   Wordmark,
   EcgStrip,
@@ -396,7 +397,10 @@ export default function App() {
       id: 'action-reset-demo',
       category: 'Action',
       label: 'Reset scenario',
-      perform: () => setIsResetModalOpen(true),
+      perform: () => {
+        setResetMessage(null);
+        setIsResetModalOpen(true);
+      },
     },
     {
       id: 'action-theme',
@@ -478,6 +482,20 @@ export default function App() {
         {/* Right: Controls (Events, Pulse, provenance, sound, theme, search) */}
         <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
           <PulseControl />
+          <Tooltip content="Reset scenario">
+            <button
+              type="button"
+              onClick={() => {
+                setResetMessage(null);
+                setIsResetModalOpen(true);
+              }}
+              aria-label="Reset scenario"
+              className="flex h-9 items-center gap-1.5 rounded-full border-2 border-[var(--line)] bg-[var(--surface-raised)] px-2.5 text-xs font-mono-numbers font-bold text-[var(--ink)] shadow-[2px_2px_0_var(--shadow-ink)] transition-all hover:-translate-y-0.5 hover:bg-[var(--surface)] active:translate-y-0.5 active:shadow-none focus-ring cursor-pointer"
+            >
+              <RotateCcw size={14} />
+              <span className="hidden lg:inline">Reset</span>
+            </button>
+          </Tooltip>
           <ProvenancePopover />
           {/* Live Events Stream Button: icon + "Events" */}
           <Tooltip content="Events" className="hidden sm:inline-flex">
@@ -556,7 +574,15 @@ export default function App() {
 
           {activeTab === 'dispatch' && (
             <Suspense fallback={<div role="status" className="rounded-[20px] border-2 border-[var(--line)] bg-[var(--surface-raised)] p-8 text-center font-mono-numbers text-xs uppercase tracking-widest text-[var(--ink-muted)]">Loading dispatch sheet…</div>}>
-              <DispatchView onNavigate={handleNavigate} presentStep={presentStep} onPresentTakeaway={setPresentTakeawayValue} />
+              <DispatchView
+                onNavigate={handleNavigate}
+                onResetScenario={() => {
+                  setResetMessage(null);
+                  setIsResetModalOpen(true);
+                }}
+                presentStep={presentStep}
+                onPresentTakeaway={setPresentTakeawayValue}
+              />
             </Suspense>
           )}
 

@@ -25,3 +25,5 @@
 23. **How does the Solver workbook help?** It exports current input data, Dijkstra paths, feasible costs, binary changing cells, constraints, and AURA's expected solution for comparison.
 24. **What are the main limitations?** Static edge minutes, simple local/service-time assumptions, one call per unit per solve, and a demo RLS policy that is too permissive for production.
 25. **What is the next security step?** Add Supabase Auth and role-based policies, then restrict operational writes to authorized roles and server-side paths.
+26. **Why can the Dispatch matrix be empty?** It needs at least one available ambulance and one pending call. Use the visible Reset action to restore the baseline scenario; it clears active dispatches and restores the baseline fleet and calls.
+27. **What are the lines on the Command map?** They show active dispatch routes; red indicates an SLA breach. Reset the scenario to clear the active routes before a fresh walkthrough.

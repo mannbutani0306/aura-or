@@ -1197,7 +1197,14 @@ export class SupabaseDataSource implements DataSource {
       }
       await this.initialLoad();
     } else {
-      await fetch('/api/reset-demo', { method: 'POST' });
+      const response = await fetch('/api/reset-demo', { method: 'POST' });
+      if (!response.ok) {
+        throw new Error(await apiErrorMessage(response, 'Failed to reset scenario'));
+      }
+      const payload: unknown = await response.json();
+      if (!payload || typeof payload !== 'object' || (payload as Record<string, unknown>).ok !== true) {
+        throw new Error('Scenario reset response is invalid');
+      }
       this.enableDemoMode();
     }
   }
