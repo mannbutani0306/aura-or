@@ -74,3 +74,10 @@
 - Disabled the long-lived simulation timer in the serverless handler. SIM fallback operational data is visible but not persistent between invocations; persistent operations and automatic dispatch progression require the documented Render/Railway server plus Supabase.
 - Added Vercel handler regressions for populated SIM state, route calculation, and Insights sample delivery; tests build and invoke the same bundled server artifact used in deployment.
 - Validation: bundled API smoke returned 200 for state (6 zones, 5 ambulances, 5 emergencies), route calculation, and workbook Insights (50 cases); targeted API/sample/security tests (8 passed), `npm run lint`, `npm run build`, and `git diff --check` passed. The existing build warnings about the solver externalization and large bundle remain.
+
+## Current Request — 2026-10-22
+
+- Verified the configured Supabase credentials can read the operational tables (`zones`, `road_edges`, `ambulances`, `emergencies`, `dispatches`, `event_log`, and `app_config`). The `ems_cases` and `v_ems_by_hour` objects still return schema-cache 404s, a separate existing Insights data issue.
+- Fixed the Vite client build to support `SUPABASE_URL` and `SUPABASE_ANON_KEY` as build-time aliases when the `VITE_` names are not set. Only the URL and public anon key are exposed; existing `VITE_` configuration and website behavior are unchanged.
+- Updated deployment guidance for the supported environment-variable names.
+- Validation: TypeScript lint passed; alias-only production build embedded the expected client settings; full suite passed (18 tests), and `git diff --check` passed. The health-route test timed out once on the initial run but passed both targeted retry and full-suite rerun.
