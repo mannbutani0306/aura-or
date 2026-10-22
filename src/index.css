@@ -10,7 +10,6 @@
 
 :root {
   font-family: "Times New Roman", Times, serif;
-  /* Dispatch Slip Theme: Warm Paper & Chunky Ink */
   --bg-app: #F2EBDD;
   --surface: #F7F1E4;
   --surface-raised: #FFFDF7;
@@ -26,13 +25,11 @@
   --blush: #F2C4C0;
   --tape: #FBF8F0;
 
-  /* Triage Colors */
   --critical: #E5322D;
   --high: #F08A00;
   --medium: #E8C21A;
   --low: #3FA66B;
 
-  /* Unit Telematics Colors */
   --available: #0F8B8D;
   --unit-available: #0F8B8D;
   --busy: #6B7785;
@@ -45,7 +42,6 @@
 }
 
 .dark {
-  /* Dispatch Slip Night Ward Theme */
   --bg-app: #0F1512;
   --surface: #151D19;
   --surface-raised: #1B2520;
@@ -61,7 +57,6 @@
   --blush: #5E2F2B;
   --tape: rgba(255, 255, 255, 0.08);
 
-  /* Night Triage & Unit Tones */
   --critical: #FF4742;
   --high: #FF9B1A;
   --medium: #F5D02E;
@@ -83,7 +78,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
   transition: background-color var(--duration-base) var(--ease-aura), color var(--duration-base) var(--ease-aura);
 
-  /* Very faint ECG-grid paper pattern (1px lines every 24px at ~4% ink opacity) via CSS gradients — no images */
   background-image:
     linear-gradient(to right, color-mix(in srgb, var(--ink) 4%, transparent) 1px, transparent 1px),
     linear-gradient(to bottom, color-mix(in srgb, var(--ink) 4%, transparent) 1px, transparent 1px);
@@ -96,7 +90,6 @@ body * {
   font-family: "Times New Roman", Times, serif !important;
 }
 
-/* Typography Utility Classes */
 .font-serif-display {
   font-family: "Times New Roman", Times, serif;
 }
@@ -117,11 +110,7 @@ body * {
   font-size: 12px !important;
 }
 
-/* ==========================================================
-   DISPATCH SLIP UTILITY VOCABULARY
-   ========================================================== */
 
-/* Big card / hero slip (28px radius, 2px ink outline, 6px 6px hard offset shadow) */
 .slip {
   background-color: var(--surface-raised);
   border: 2px solid var(--line);
@@ -139,7 +128,6 @@ body * {
   transition: transform var(--duration-fast) var(--ease-aura), box-shadow var(--duration-fast) var(--ease-aura);
 }
 
-/* Small control slip (14px radius, 2px ink outline, 3px 3px hard shadow) */
 .slip-sm {
   background-color: var(--surface-raised);
   border: 2px solid var(--line);
@@ -148,7 +136,6 @@ body * {
   transition: transform var(--duration-fast) var(--ease-aura), box-shadow var(--duration-fast) var(--ease-aura);
 }
 
-/* Pill (fully rounded 999px, 2px ink outline, 3px 3px hard shadow) */
 .pill {
   border: 2px solid var(--line);
   border-radius: 999px;
@@ -156,7 +143,6 @@ body * {
   transition: transform var(--duration-fast) var(--ease-aura), box-shadow var(--duration-fast) var(--ease-aura);
 }
 
-/* Interactive hover / press physics for tactile slips */
 .slip-interactive,
 button.slip,
 button.slip-sm,
@@ -194,7 +180,6 @@ a.pill:active {
   box-shadow: 0 0 0 var(--shadow-ink);
 }
 
-/* Organic blob-shaped sticker */
 .sticker-blob {
   border: 2px solid var(--line);
   border-radius: 58% 42% 55% 45% / 48% 56% 44% 52%;
@@ -208,7 +193,6 @@ a.pill:active {
   transform: scale(1.06) rotate(3deg);
 }
 
-/* Rotated rubber stamp in double border */
 .stamp {
   display: inline-flex;
   align-items: center;
@@ -228,7 +212,6 @@ a.pill:active {
   mix-blend-mode: multiply;
 }
 
-/* Translucent surgical tape strip with cross-hatch */
 .tape {
   position: absolute;
   height: 18px;
@@ -249,7 +232,6 @@ a.pill:active {
   );
 }
 
-/* Faint ECG grid container class */
 .ecg-grid {
   background-image:
     linear-gradient(to right, color-mix(in srgb, var(--ink) 5%, transparent) 1px, transparent 1px),
@@ -265,7 +247,6 @@ a.pill:active {
   filter: invert(0.88) hue-rotate(180deg) saturate(0.45) brightness(0.78) contrast(1.1);
 }
 
-/* Thin red/cream diagonal chevron stripe divider (ambulance livery) */
 .chevron-rule {
   width: 100%;
   height: 8px;
@@ -280,7 +261,6 @@ a.pill:active {
   );
 }
 
-/* Punched hole for triage tag wire */
 .tag-hole {
   width: 9px;
   height: 9px;
@@ -290,7 +270,6 @@ a.pill:active {
   box-shadow: inset 1px 1px 0 rgba(0, 0, 0, 0.2);
 }
 
-/* Focus Ring */
 .focus-ring {
   outline: none;
 }
@@ -304,7 +283,6 @@ a.pill:active {
   outline-offset: 3px;
 }
 
-/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -362,7 +340,6 @@ a.pill:active {
   }
 }
 
-/* Page Transition animation (240ms cubic-bezier) */
 .page-transition-enter {
   animation: pageFadeIn 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
@@ -378,7 +355,6 @@ a.pill:active {
   }
 }
 
-/* Page Title Stamp Down */
 @keyframes titleStampDown {
   0% {
     transform: scale(1.08) translateY(-4px);
@@ -397,7 +373,6 @@ a.pill:active {
   transform-origin: left center;
 }
 
-/* Call Arrive Pulse for Dispatch Pill */
 @keyframes callArrivePulse {
   0% {
     transform: scale(1);
@@ -421,7 +396,6 @@ a.pill:active {
   animation: callArrivePulse 700ms cubic-bezier(0.16, 1, 0.3, 1) 1;
 }
 
-/* Gentle Rock for Wordmark Sticker */
 @keyframes gentlyRock {
   0%, 100% {
     transform: rotate(0deg);
@@ -439,7 +413,6 @@ a.pill:active {
   animation: gentlyRock 600ms ease-in-out infinite;
 }
 
-/* Marquee Scroll for Live Ticker */
 @keyframes marqueeScroll {
   0% {
     transform: translateX(0%);
@@ -459,7 +432,6 @@ a.pill:active {
   animation-play-state: paused;
 }
 
-/* Stamp Down Animation */
 @keyframes stampDown {
   0% {
     transform: scale(1.6) rotate(-10deg);
@@ -541,7 +513,6 @@ a.pill:active {
   animation: drawEcgPath 720ms var(--ease-aura) both;
 }
 
-/* Strict prefers-reduced-motion honor */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

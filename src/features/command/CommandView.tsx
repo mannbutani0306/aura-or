@@ -46,7 +46,6 @@ export function CommandView({
   onTriggerSiren,
   presentStep = null,
 }: CommandViewProps) {
-  // Domain Data State
   const [zones, setZones] = useState<Zone[]>([]);
   const [roads, setRoads] = useState<RoadEdge[]>([]);
   const [ambulances, setAmbulances] = useState<Ambulance[]>([]);
@@ -56,33 +55,27 @@ export function CommandView({
   const [simSpeed, setSimSpeed] = useState<number>(1);
   const [currentTime, setCurrentTime] = useState<number>(Date.now());
 
-  // Navigation / Selection State
   const [selectedCall, setSelectedCall] = useState<Emergency | null>(null);
   const [selectedUnit, setSelectedUnit] = useState<Ambulance | null>(null);
   const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number; zoom?: number; timestamp?: number } | null>(null);
 
-  // Modal State for "+" New Call
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newZoneId, setNewZoneId] = useState<string>('B');
   const [newPriority, setNewPriority] = useState<EmergencyPriority>('Critical');
   const [newRequiresAls, setNewRequiresAls] = useState<boolean>(true);
   const [isSubmittingCall, setIsSubmittingCall] = useState(false);
 
-  // Sub-tab inside Calls Left Panel: 'queue' | 'table'
   const [callsPanelTab, setCallsPanelTab] = useState<'queue' | 'table'>('queue');
 
   useEffect(() => {
     if (presentStep === 1) setIsAddModalOpen(true);
   }, [presentStep]);
 
-  // Breakpoint 768-1279px: Collapsible Calls Overlay
   const [overlayPanel, setOverlayPanel] = useState<'calls' | null>(null);
 
-  // Mobile Bottom Sheet Snap (390-767px): 'peek' | 'half' | 'full'
   const [sheetSnap, setSheetSnap] = useState<'peek' | 'half' | 'full'>('peek');
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
 
-  // Connection State Machine
   const [connStatus, setConnStatus] = useState<ConnectionStatus>(dataSource.getConnectionStatus());
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(dataSource.getLastSyncedAt());
   const [roundTripMs, setRoundTripMs] = useState<number>(dataSource.getRoundTripMs());
@@ -107,7 +100,6 @@ export function CommandView({
     return () => { isCurrent = false; };
   }, []);
 
-  // Toast Notifications
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   const addToast = (toast: Omit<ToastMessage, 'id'>) => {
@@ -119,7 +111,6 @@ export function CommandView({
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  // Load and subscribe to data source
   useEffect(() => {
     const loadData = async () => {
       const [z, r, a, e, d, s] = await Promise.all([
@@ -144,7 +135,6 @@ export function CommandView({
     return () => unsubscribe();
   }, []);
 
-  // 1-second live ticker for waiting times
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(Date.now());
@@ -152,7 +142,6 @@ export function CommandView({
     return () => clearInterval(timer);
   }, []);
 
-  // Priority sorting weight helper
   const priorityRank: Record<EmergencyPriority, number> = {
     Critical: 4,
     High: 3,
@@ -160,7 +149,6 @@ export function CommandView({
     Low: 1,
   };
 
-  // Live sorted pending calls: priority first, then age (oldest first)
   const pendingCalls = useMemo(() => {
     return emergencies
       .filter((e) => e.status === 'Pending')
@@ -171,7 +159,6 @@ export function CommandView({
       });
   }, [emergencies]);
 
-  // Derived KPI Numerals (NEVER hard-coded)
   const availableCount = useMemo(
     () => ambulances.filter((a) => a.status === 'Available').length,
     [ambulances]
@@ -197,14 +184,12 @@ export function CommandView({
     return Number(median.toFixed(1));
   }, [pendingCalls, currentTime]);
 
-  // Lookup Zone Helper
   const zoneMap = useMemo(() => {
     const map = new Map<string, Zone>();
     zones.forEach((z) => map.set(z.id, z));
     return map;
   }, [zones]);
 
-  // Handle Call Select (Fly to zone and open details drawer)
   const handleSelectCall = (call: Emergency) => {
     setSelectedCall(call);
     setSelectedUnit(null);
@@ -214,7 +199,6 @@ export function CommandView({
     }
   };
 
-  // Handle Unit Select (Fly to zone and open details drawer)
   const handleSelectUnit = (unit: Ambulance) => {
     setSelectedUnit(unit);
     setSelectedCall(null);
@@ -224,7 +208,6 @@ export function CommandView({
     }
   };
 
-  // Format Elapsed Waiting Time (ticking live)
   const formatWaitTime = (requestedAt: number) => {
     const elapsedSec = Math.max(0, Math.floor((currentTime - requestedAt) / 1000));
     const m = Math.floor(elapsedSec / 60);
@@ -232,7 +215,6 @@ export function CommandView({
     return `${m}m ${String(s).padStart(2, '0')}s`;
   };
 
-  // Handle Register New Call (weight & requiresAls are DB GENERATED columns)
   const handleRegisterCall = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmittingCall(true);
@@ -243,7 +225,6 @@ export function CommandView({
         priority: newPriority,
       });
 
-      // Siren sweep and optional audio if Critical
       if (created.priority === 'Critical') {
         onTriggerSiren?.();
       }
@@ -266,7 +247,6 @@ export function CommandView({
 
   return (
     <div className="relative h-[calc(100vh-4.5rem)] w-full overflow-hidden rounded-[28px] border-2 border-[var(--line)] bg-[var(--surface)] shadow-[8px_8px_0_var(--shadow-ink)]">
-      {/* 1. Framed Leaflet Map Card */}
       <div className={`absolute inset-0 z-0 overflow-hidden rounded-[28px] border-2 border-[var(--line)] transition-all duration-300 ${connStatus === 'offline' ? 'grayscale opacity-60' : ''}`}>
         <Suspense fallback={<div role="status" className="h-full min-h-[480px] w-full bg-[var(--surface)] ecg-grid" aria-label="Loading map" />}>
           <MaduraiMap
@@ -292,7 +272,6 @@ export function CommandView({
         </Suspense>
       </div>
 
-      {/* Offline Status Warning Ribbon over Map */}
       {connStatus === 'offline' && (
         <div className="absolute top-16 sm:top-20 left-1/2 -translate-x-1/2 z-25 px-3.5 py-1.5 rounded-full bg-[var(--surface-raised)] border-2 border-[var(--critical)] text-[var(--critical)] text-xs font-mono-numbers shadow-[3px_3px_0_var(--shadow-ink)] flex items-center gap-2 select-none font-bold">
           <span className="w-2 h-2 rounded-full bg-[var(--critical)]" />
@@ -303,7 +282,6 @@ export function CommandView({
         </div>
       )}
 
-      {/* 2. Top-Left Floating Metric Strip (Four Large Serif Numerals on Slip) */}
       <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-20 pointer-events-auto max-w-[calc(100vw-1rem)] sm:max-w-none">
         <div className="p-2 sm:p-3.5 rounded-[16px] bg-[var(--surface-raised)] border-2 border-[var(--line)] shadow-[4px_4px_0_var(--shadow-ink)] flex items-center gap-2.5 sm:gap-6 overflow-x-auto">
           <div className="flex flex-col shrink-0">
@@ -361,7 +339,6 @@ export function CommandView({
         </div>
       </div>
 
-      {/* 3. Collapsible Calls Overlay Toggle (768px – 1279px) */}
       <div className="hidden md:flex xl:hidden absolute top-4 right-4 z-20 items-center gap-2 pointer-events-auto">
         <button
           onClick={() => setOverlayPanel((prev) => (prev === 'calls' ? null : 'calls'))}
@@ -377,7 +354,6 @@ export function CommandView({
         </button>
       </div>
 
-      {/* 4. Right Panel "Calls" (≥1280 persistent, 768-1279 collapsible overlay, <768 in bottom sheet) */}
       <div
         className={`absolute right-3 sm:right-4 bottom-20 top-20 sm:top-24 z-25 pointer-events-auto flex-col transition-all duration-240 ${
           callsPanelTab === 'table' ? 'w-[360px] sm:w-[480px] lg:w-[540px]' : 'w-[320px] sm:w-[360px]'
@@ -398,7 +374,6 @@ export function CommandView({
         />
       </div>
 
-      {/* 5. Mobile Draggable Bottom Sheet (390px - 767px) */}
       <div
         className={`md:hidden absolute left-0 right-0 bottom-0 z-30 bg-[var(--surface)]/98 backdrop-blur-md border-t border-[var(--line)] shadow-2xl rounded-t-[16px] flex flex-col transition-all duration-240 ease-[cubic-bezier(0.16,1,0.3,1)] pointer-events-auto ${
           sheetSnap === 'peek' ? 'h-14' : sheetSnap === 'half' ? 'h-[46%]' : 'h-[78%]'
@@ -415,7 +390,6 @@ export function CommandView({
           setTouchStartY(null);
         }}
       >
-        {/* Grab Handle */}
         <button
           onClick={() => {
             setSheetSnap((prev) => (prev === 'peek' ? 'half' : prev === 'half' ? 'full' : 'peek'));
@@ -426,7 +400,6 @@ export function CommandView({
           <div className="w-10 h-1 rounded-full bg-[var(--line)]" />
         </button>
 
-        {/* Calls Sheet Controls */}
         <div className="flex items-center justify-between px-3 pb-2 border-b border-[var(--line)] shrink-0">
           <span className="px-2.5 py-1 text-xs font-mono-numbers uppercase tracking-wider text-[var(--ink)]">
             Calls ({hasLoadedState ? pendingCalls.length : '…'})
@@ -450,7 +423,6 @@ export function CommandView({
           </div>
         </div>
 
-        {/* Sheet Scroll Body */}
         {sheetSnap !== 'peek' && (
           <div className="flex-1 overflow-y-auto p-2 divide-y divide-[var(--line)]">
             {pendingCalls.length === 0 ? (
@@ -501,7 +473,6 @@ export function CommandView({
         )}
       </div>
 
-      {/* 7. Bottom-Centre Primary Action: "Dispatch" */}
       <div
         className={`absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-20 pointer-events-auto transition-opacity ${
           sheetSnap !== 'peek' ? 'hidden md:block' : 'block'
@@ -524,14 +495,12 @@ export function CommandView({
         </Tooltip>
       </div>
 
-      {/* 7. Modal: Register New Call ("+") */}
       <Modal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         title="Register Call"
       >
         <form onSubmit={handleRegisterCall} className="flex flex-col gap-5">
-          {/* Priority Selection with 4 Triage Tags */}
           <div className="flex flex-col gap-2">
             <label className="text-xs font-mono-numbers uppercase text-[var(--ink-muted)]">
               Triage Priority
@@ -563,7 +532,6 @@ export function CommandView({
             </div>
           </div>
 
-          {/* Zone Selector */}
           <div className="flex flex-col gap-2">
             <label className="text-xs font-mono-numbers uppercase text-[var(--ink-muted)]">
               Madurai Sector Zone
@@ -591,7 +559,6 @@ export function CommandView({
             </div>
           </div>
 
-          {/* ALS Requirement Toggle */}
           <div className="flex items-center justify-between p-3 rounded-[6px] bg-[var(--surface)] border border-[var(--line)]">
             <div className="flex flex-col">
               <span className="text-xs font-ui font-medium text-[var(--ink)]">
@@ -609,7 +576,6 @@ export function CommandView({
             />
           </div>
 
-          {/* Action Buttons */}
           <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--line)]">
             <Button
               type="button"
@@ -631,7 +597,6 @@ export function CommandView({
         </form>
       </Modal>
 
-      {/* 8. Details Drawer (for Call or Unit) */}
       <Drawer
         isOpen={Boolean(selectedCall || selectedUnit)}
         onClose={() => {
@@ -744,7 +709,6 @@ export function CommandView({
               </div>
             </div>
 
-            {/* Active Dispatch Details & Manual Lifecycle Actions */}
             {(() => {
               const activeDisp = dispatches.find(
                 (d) =>
@@ -840,7 +804,6 @@ export function CommandView({
         )}
       </Drawer>
 
-      {/* 5. Bottom "Live" Timeline Strip */}
       <div className="mt-auto shrink-0 z-20 pointer-events-auto">
         <LiveTimelineStrip
           dispatches={dispatches}
@@ -858,7 +821,6 @@ export function CommandView({
         />
       </div>
 
-      {/* Floating 6-Second Undo / Action Toast Container */}
       <ToastContainer toasts={toasts} onDismiss={removeToast} />
     </div>
   );

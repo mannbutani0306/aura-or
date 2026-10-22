@@ -34,7 +34,6 @@ export function RouteMap({
   const layersGroupRef = useRef<L.LayerGroup | null>(null);
   const vehicleMarkerRef = useRef<L.Marker | null>(null);
 
-  // Initialize Map
   useEffect(() => {
     const container = mapContainerRef.current;
     if (!container) return;
@@ -68,7 +67,6 @@ export function RouteMap({
     };
   }, []);
 
-  // Update Tile Layer based on theme
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
@@ -88,7 +86,6 @@ export function RouteMap({
     tileLayerRef.current = tiles;
   }, [theme]);
 
-  // Redraw Network, Active Route, Alternatives, Tracing States
   useEffect(() => {
     const map = mapInstanceRef.current;
     const group = layersGroupRef.current;
@@ -100,7 +97,6 @@ export function RouteMap({
     const zoneMap = new Map<string, Zone>();
     zones.forEach((z) => zoneMap.set(z.id, z));
 
-    // 1. Draw All Road Corridors (Normal or Blocked)
     roads.forEach((road) => {
       const zA = zoneMap.get(road.a);
       const zB = zoneMap.get(road.b);
@@ -131,7 +127,6 @@ export function RouteMap({
       poly.addTo(group);
     });
 
-    // 2. Draw Alternative Routes (k-shortest) in neutral dashed lines
     alternativePaths.forEach((alt, idx) => {
       const coords: [number, number][] = alt.path
         .map((zId) => {
@@ -158,7 +153,6 @@ export function RouteMap({
       poly.addTo(group);
     });
 
-    // 3. Draw Active Optimal Route (Thick Animated Flow Line)
     if (activePath.length >= 2) {
       const coords: [number, number][] = activePath
         .map((zId) => {
@@ -168,7 +162,6 @@ export function RouteMap({
         .filter((c): c is [number, number] => c !== null);
 
       if (coords.length >= 2) {
-        // Shadow halo
         const halo = L.polyline(coords, {
           color: '#0F8B8D',
           weight: 7,
@@ -177,7 +170,6 @@ export function RouteMap({
         });
         halo.addTo(group);
 
-        // Core flowing dashed line
         const flowLine = L.polyline(coords, {
           color: '#0F8B8D',
           weight: 4,
@@ -189,19 +181,16 @@ export function RouteMap({
       }
     }
 
-    // 4. Draw Zones (with Ordinal numbers if on activePath, or Tracing distance badges)
     zones.forEach((zone) => {
       const pathIndex = activePath.indexOf(zone.id);
       const isOnPath = pathIndex !== -1;
       const isOrigin = pathIndex === 0;
       const isTarget = pathIndex === activePath.length - 1 && activePath.length > 1;
 
-      // Tracing State
       const isVisitedInTrace = isTracing && traceStep?.visitedNodes.includes(zone.id);
       const isCurrentTraceNode = isTracing && traceStep?.currentNode === zone.id;
       const tentativeDist = isTracing ? traceStep?.tentativeDistances[zone.id] : undefined;
 
-      // Soft disc
       const circle = L.circle([zone.lat, zone.lng], {
         radius: isTarget || isOrigin ? 480 : 380,
         color: isTarget ? '#E5322D' : isOrigin ? '#0F8B8D' : 'rgba(20, 22, 26, 0.18)',
@@ -217,10 +206,8 @@ export function RouteMap({
       });
       circle.addTo(group);
 
-      // Custom HTML Marker Badge
       let badgeHtml = '';
       if (isTracing) {
-        // Tracing mode badge: tentative distance display
         const distStr = tentativeDist === undefined || tentativeDist === Infinity ? '∞' : `${tentativeDist.toFixed(1)}m`;
         badgeHtml = `
           <div class="aura-trace-badge ${isCurrentTraceNode ? 'current' : isVisitedInTrace ? 'visited' : 'unvisited'}">
@@ -229,7 +216,6 @@ export function RouteMap({
           </div>
         `;
       } else if (isOnPath) {
-        // Ordinal node marker (1, 2, 3...)
         badgeHtml = `
           <div class="aura-ordinal-badge ${isOrigin ? 'origin' : isTarget ? 'target' : 'waypoint'}">
             <span class="ordinal-num">${pathIndex + 1}</span>
@@ -238,7 +224,6 @@ export function RouteMap({
           </div>
         `;
       } else {
-        // Default zone badge
         badgeHtml = `
           <div class="aura-zone-badge ${theme}">
             <span class="aura-zone-id">${zone.id}</span>
@@ -258,7 +243,6 @@ export function RouteMap({
       marker.addTo(group);
     });
 
-    // 5. Draw Simulated Vehicle 🚑 along route
     if (activePath.length >= 2 && vehicleProgress !== undefined && vehicleProgress >= 0) {
       const coords: [number, number][] = activePath
         .map((zId) => {
@@ -268,7 +252,6 @@ export function RouteMap({
         .filter((c): c is [number, number] => c !== null);
 
       if (coords.length >= 2) {
-        // Calculate interpolated point along multi-segment polyline
         const totalSegments = coords.length - 1;
         const scaledProgress = Math.max(0, Math.min(1, vehicleProgress)) * totalSegments;
         const segmentIndex = Math.min(Math.floor(scaledProgress), totalSegments - 1);
@@ -312,7 +295,6 @@ export function RouteMap({
       />
 
       <style>{`
-        /* Flow line animation */
         @keyframes flowDashAnim {
           0% {
             stroke-dashoffset: 36;
@@ -325,7 +307,6 @@ export function RouteMap({
           animation: flowDashAnim 1s linear infinite;
         }
 
-        /* Ordinal Badge */
         .aura-ordinal-badge {
           display: inline-flex;
           align-items: center;
@@ -377,7 +358,6 @@ export function RouteMap({
           color: var(--ink-muted);
         }
 
-        /* Tracing State Badges */
         .aura-trace-badge {
           display: inline-flex;
           align-items: center;
@@ -404,7 +384,6 @@ export function RouteMap({
           color: var(--ink-subtle);
         }
 
-        /* Moving Vehicle Marker */
         .aura-vehicle-marker {
           position: relative;
           width: 36px;

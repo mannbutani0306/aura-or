@@ -81,3 +81,11 @@
 - Fixed the Vite client build to support `SUPABASE_URL` and `SUPABASE_ANON_KEY` as build-time aliases when the `VITE_` names are not set. Only the URL and public anon key are exposed; existing `VITE_` configuration and website behavior are unchanged.
 - Updated deployment guidance for the supported environment-variable names.
 - Validation: TypeScript lint passed; alias-only production build embedded the expected client settings; full suite passed (18 tests), and `git diff --check` passed. The health-route test timed out once on the initial run but passed both targeted retry and full-suite rerun.
+
+## Current Request — 2026-10-22
+
+- Removed `DEPLOY.md` as requested; kept the README and other project guides.
+- Removed standalone comments from the updated application, command view, route map, and stylesheet to keep the touched code concise.
+- TypeScript lint and all 18 tests pass in the Git clone.
+- Production build passes; existing externalization and large-chunk warnings remain.
+- Next: continue the remaining release checklist in Step 5.

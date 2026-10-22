@@ -44,7 +44,6 @@ const DesignKitView = lazy(() => import('./features/kit/DesignKitView').then((mo
 export type NavTabId = 'command' | 'dispatch' | 'fleet' | 'routes' | 'insights' | 'kit';
 
 export default function App() {
-  // 1. Session-based First-Load Intro
   const [showIntro, setShowIntro] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     return !sessionStorage.getItem('aura_intro_shown');
@@ -55,7 +54,6 @@ export default function App() {
     setShowIntro(false);
   }, []);
 
-  // 2. Connection State Machine
   const [connStatus, setConnStatus] = useState<ConnectionStatus>(dataSource.getConnectionStatus());
   const [roundTripMs, setRoundTripMs] = useState<number>(dataSource.getRoundTripMs());
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(dataSource.getLastSyncedAt());
@@ -71,7 +69,6 @@ export default function App() {
     return () => unsub();
   }, []);
 
-  // 3. Event Log Realtime Stream
   const [eventLogs, setEventLogs] = useState<EventLogRow[]>(() => dataSource.getEventLogs());
   const [isEventsDrawerOpen, setIsEventsDrawerOpen] = useState(false);
 
@@ -82,7 +79,6 @@ export default function App() {
     return () => unsub();
   }, []);
 
-  // 4. Reset Scenario State
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
@@ -110,7 +106,6 @@ export default function App() {
     }
   };
 
-  // 5. Active Tab State & URL Hash Support for hidden /#/kit route
   const getInitialTab = (): NavTabId => {
     if (typeof window !== 'undefined' && window.location.hash) {
       const hash = window.location.hash.replace('#/', '').replace('#', '');
@@ -199,14 +194,12 @@ export default function App() {
     });
   }, []);
 
-  // 6. Theme State
   const [theme, setTheme] = useState<ThemeMode>(() => {
     if (typeof window === 'undefined') return 'paper';
     const saved = localStorage.getItem('aura-theme-mode') as ThemeMode | null;
     return saved === 'night' || saved === 'paper' ? saved : 'paper';
   });
 
-  // 7. Audio State
   const [soundActive, setSoundActive] = useState<boolean>(() => isSoundEnabled());
 
   const toggleSound = useCallback(() => {
@@ -218,10 +211,8 @@ export default function App() {
     }
   }, [soundActive]);
 
-  // 8. Command Palette State
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
-  // 9. Real-time Emergency Rhythm (feeds the ECG strip in header)
   const [ecgState, setEcgState] = useState<EcgState>('idle');
 
   useEffect(() => {
@@ -251,7 +242,6 @@ export default function App() {
     return () => unsub();
   }, [connStatus]);
 
-  // 10. Global Keyboard Navigation (1-6, Cmd+K, T, M, ?)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
@@ -303,7 +293,6 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [toggleSound, handleNavigate, startPresent]);
 
-  // Navigation Items Config
   const navItems: Array<{ id: NavTabId; label: string; shortcut: string; icon: React.ReactNode }> = [
     { id: 'command', label: 'Command', shortcut: '1', icon: <IconZone size={15} /> },
     { id: 'dispatch', label: 'Dispatch', shortcut: '2', icon: <IconSolver size={15} /> },
@@ -312,7 +301,6 @@ export default function App() {
     { id: 'insights', label: 'Insights', shortcut: '5', icon: <IconClock size={15} /> },
   ];
 
-  // Command Palette Items (Clean scrubbed copy, short verbs, unlisted design kit)
   const commandPaletteItems: CommandItem[] = useMemo(() => [
     {
       id: 'nav-command',
@@ -424,7 +412,6 @@ export default function App() {
     }
   }, [soundActive]);
 
-  // If Connection is Offline and no data can be loaded, show full-screen Offline State
   if (connStatus === 'offline') {
     return (
       <OfflineState
@@ -438,12 +425,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-app)] text-[var(--ink)] flex flex-col font-ui antialiased transition-colors duration-240 ecg-grid">
-      {/* 1. First-Load Intro Sequence (≤1.2s, once per session, skippable) */}
       {showIntro && <FirstLoadIntro onComplete={handleIntroComplete} />}
 
-      {/* 2. Top Header Bar (Desktop & Mobile) with Chunky Outline and Hard Offset Shadow */}
       <header className="min-h-16 h-auto min-w-0 px-3 sm:px-6 py-2 border-b-2 border-[var(--line)] bg-[var(--surface-raised)] sticky top-0 z-30 flex flex-wrap items-center justify-between gap-y-2 shrink-0 shadow-[0_2px_0_var(--shadow-ink)]">
-        {/* Left: Brand Wordmark + Live Telematics Rhythm + Realtime Connection Chip */}
         <div className="flex min-w-0 items-center gap-2 sm:gap-4">
           <Wordmark size="md" onClick={() => handleNavigate('command')} />
           <div className="hidden sm:block h-5 w-[2px] bg-[var(--line)] opacity-30" />
@@ -451,7 +435,6 @@ export default function App() {
           <ConnectionChip status={connStatus} roundTripMs={roundTripMs} lastSyncedAt={lastSyncedAt} isDemo={dataSource.isDemo()} error={lastError} compact />
         </div>
 
-        {/* Center: Desktop Navigation Dock (pills with 2px line and hard shadows) */}
         <nav
           aria-label="Main Navigation"
           className="hidden md:flex items-center gap-1.5 p-1 rounded-full bg-[var(--surface)] border-2 border-[var(--line)] shadow-[3px_3px_0_var(--shadow-ink)]"
@@ -477,7 +460,6 @@ export default function App() {
           })}
         </nav>
 
-        {/* Right: Controls */}
         <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
           <Tooltip content="Reset scenario">
             <button
@@ -494,7 +476,6 @@ export default function App() {
             </button>
           </Tooltip>
           <ProvenancePopover />
-          {/* Live Events Stream Button: icon + "Events" */}
           <Tooltip content="Events" className="hidden sm:inline-flex">
             <button
               onClick={() => setIsEventsDrawerOpen(true)}
@@ -507,7 +488,6 @@ export default function App() {
             </button>
           </Tooltip>
 
-          {/* Command Palette Trigger: Search pill with Kbd ⌘K inside */}
           <Tooltip content="Search commands">
             <button
               onClick={() => setIsCommandPaletteOpen(true)}
@@ -521,7 +501,6 @@ export default function App() {
         </div>
       </header>
 
-      {/* Marquee Ticker: Tactical Telematics Slip Ticker */}
       <div className="w-full bg-[var(--surface)] border-b-2 border-[var(--line)] py-1 px-4 overflow-hidden select-none flex items-center gap-4 text-[11px] font-mono-numbers font-semibold">
         <span className="px-2 py-0.5 rounded-full bg-[var(--signal)] text-white text-[9px] uppercase tracking-wider font-extrabold shrink-0 border border-[var(--line)]">
           DISPATCH SLIP
@@ -537,7 +516,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* 3. Main View Container with 240ms Shared Page Transition */}
       <main id="app-main" className="flex-1 w-full max-w-full overflow-hidden p-3 sm:p-5 pb-20 md:pb-5 flex flex-col">
         {connStatus === 'connecting' && (
           <div role="status" aria-live="polite" className="mb-3 flex items-center gap-2 border-2 border-[var(--line)] bg-[var(--surface-raised)] px-3 py-2 font-mono-numbers text-[10px] font-bold uppercase text-[var(--ink-muted)] shadow-[2px_2px_0_var(--shadow-ink)]">
@@ -595,7 +573,6 @@ export default function App() {
         </div>
       </main>
 
-      {/* 4. Mobile Bottom Tab Bar */}
       <nav
         aria-label="Mobile Navigation"
         className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[var(--surface-raised)] border-t-2 border-[var(--line)] h-16 flex items-center justify-around px-2 shadow-2xl"
@@ -631,7 +608,6 @@ export default function App() {
         })}
       </nav>
 
-      {/* 5. Global Command Palette */}
       <CommandPalette
         isOpen={isCommandPaletteOpen}
         onClose={() => setIsCommandPaletteOpen(false)}
@@ -648,14 +624,12 @@ export default function App() {
 
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
 
-      {/* 6. Realtime Events Drawer */}
       <EventsDrawer
         isOpen={isEventsDrawerOpen}
         onClose={() => setIsEventsDrawerOpen(false)}
         events={eventLogs}
       />
 
-      {/* 7. Reset Scenario Confirmation Modal */}
       <Modal
         isOpen={isResetModalOpen}
         onClose={() => setIsResetModalOpen(false)}
