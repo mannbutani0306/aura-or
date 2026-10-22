@@ -355,8 +355,8 @@ export function RouteMap({
           border-radius: 50%;
           background: var(--ink);
           color: var(--bg-app);
-          font-family: 'Geist Mono', monospace;
-          font-size: 10px;
+          font-family: 'Times New Roman', Times, serif;
+          font-size: 12px;
           font-weight: bold;
         }
         .aura-ordinal-badge.origin .ordinal-num {
@@ -366,13 +366,13 @@ export function RouteMap({
           background: var(--critical);
         }
         .zone-id {
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: 'Times New Roman', Times, serif;
           font-size: 14px;
           font-weight: bold;
         }
         .zone-name {
-          font-family: 'Geist Mono', monospace;
-          font-size: 9px;
+          font-family: 'Times New Roman', Times, serif;
+          font-size: 12px;
           text-transform: uppercase;
           color: var(--ink-muted);
         }
@@ -384,8 +384,8 @@ export function RouteMap({
           gap: 4px;
           padding: 2px 6px;
           border-radius: 4px;
-          font-family: 'Geist Mono', monospace;
-          font-size: 10px;
+          font-family: 'Times New Roman', Times, serif;
+          font-size: 12px;
           background: var(--surface);
           border: 1px solid var(--line);
         }

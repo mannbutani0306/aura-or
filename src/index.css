@@ -3,7 +3,13 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@theme {
+  --text-xs: 0.875rem;
+  --text-sm: 1rem;
+}
+
 :root {
+  font-family: "Times New Roman", Times, serif;
   /* Dispatch Slip Theme: Warm Paper & Chunky Ink */
   --bg-app: #F2EBDD;
   --surface: #F7F1E4;
@@ -72,7 +78,7 @@ body {
   min-height: 100vh;
   background-color: var(--bg-app);
   color: var(--ink);
-  font-family: "Hanken Grotesk", "Trebuchet MS", "Noto Color Emoji", sans-serif;
+  font-family: "Times New Roman", Times, serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color var(--duration-base) var(--ease-aura), color var(--duration-base) var(--ease-aura);
@@ -85,18 +91,30 @@ body {
   overflow-x: clip;
 }
 
+body,
+body * {
+  font-family: "Times New Roman", Times, serif !important;
+}
+
 /* Typography Utility Classes */
 .font-serif-display {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: "Times New Roman", Times, serif;
 }
 
 .font-ui {
-  font-family: "Hanken Grotesk", "Trebuchet MS", "Noto Color Emoji", sans-serif;
+  font-family: "Times New Roman", Times, serif;
 }
 
 .font-mono-numbers {
-  font-family: "Geist Mono", "Cascadia Mono", Consolas, monospace;
+  font-family: "Times New Roman", Times, serif;
   font-variant-numeric: tabular-nums;
+}
+
+[class*="text-[8px]"],
+[class*="text-[9px]"],
+[class*="text-[10px]"],
+[class*="text-[11px]"] {
+  font-size: 12px !important;
 }
 
 /* ==========================================================
@@ -195,7 +213,7 @@ a.pill:active {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: "Geist Mono", monospace;
+  font-family: "Times New Roman", Times, serif;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -559,4 +577,3 @@ a.pill:active {
     transform: none !important;
   }
 }
-

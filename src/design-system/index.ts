@@ -32,5 +32,4 @@ export * from './FirstLoadIntro';
 export * from './ConnectionChip';
 export * from './EventsDrawer';
 export * from './OfflineState';
-export * from './PulseControl';
 export * from './ProvenancePopover';

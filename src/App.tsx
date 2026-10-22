@@ -4,7 +4,6 @@ import {
   Wordmark,
   EcgStrip,
   EcgState,
-  ThemeToggle,
   ThemeMode,
   CommandPalette,
   CommandItem,
@@ -16,7 +15,6 @@ import {
   Modal,
   Button,
   Kbd,
-  PulseControl,
   ProvenancePopover,
   ToastContainer,
   ToastMessage,
@@ -479,9 +477,8 @@ export default function App() {
           })}
         </nav>
 
-        {/* Right: Controls (Events, Pulse, provenance, sound, theme, search) */}
+        {/* Right: Controls */}
         <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
-          <PulseControl />
           <Tooltip content="Reset scenario">
             <button
               type="button"
@@ -509,20 +506,6 @@ export default function App() {
               <span className="text-[10px] text-[var(--ink-muted)] font-normal">({eventLogs.length})</span>
             </button>
           </Tooltip>
-
-          {/* Audio Toggle */}
-          <Tooltip content={soundActive ? 'Mute' : 'Sound'} shortcut="M" className="hidden sm:inline-flex">
-            <button
-              onClick={toggleSound}
-              aria-label={soundActive ? 'Mute' : 'Sound'}
-              className="w-9 h-9 flex items-center justify-center rounded-full border-2 border-[var(--line)] bg-[var(--surface-raised)] hover:bg-[var(--surface)] shadow-[2px_2px_0_var(--shadow-ink)] hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-none transition-all focus-ring cursor-pointer"
-            >
-              <span className="text-sm">{soundActive ? '🔔' : '🔕'}</span>
-            </button>
-          </Tooltip>
-
-          {/* Theme Toggle */}
-          <ThemeToggle theme={theme} onToggle={setTheme} compact />
 
           {/* Command Palette Trigger: Search pill with Kbd ⌘K inside */}
           <Tooltip content="Search commands">

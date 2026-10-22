@@ -10,7 +10,6 @@ import {
 import { dataSource, getSlaBenchmarkMinutes } from '../../data';
 import { LiveTimelineStrip } from './LiveTimelineStrip';
 import { CallsSlip } from './CallsSlip';
-import { UnitsSlip } from './UnitsSlip';
 import {
   TriageTag,
   Button,
@@ -26,7 +25,6 @@ import {
   IconClose,
   IconCheck,
   IconCall,
-  IconUnit,
   AnimatedCounter,
   Stamp,
 } from '../../design-system';
@@ -77,12 +75,11 @@ export function CommandView({
     if (presentStep === 1) setIsAddModalOpen(true);
   }, [presentStep]);
 
-  // Breakpoint 768-1279px: Collapsible Overlays
-  const [overlayPanel, setOverlayPanel] = useState<'calls' | 'units' | null>(null);
+  // Breakpoint 768-1279px: Collapsible Calls Overlay
+  const [overlayPanel, setOverlayPanel] = useState<'calls' | null>(null);
 
   // Mobile Bottom Sheet Snap (390-767px): 'peek' | 'half' | 'full'
   const [sheetSnap, setSheetSnap] = useState<'peek' | 'half' | 'full'>('peek');
-  const [sheetTab, setSheetTab] = useState<'calls' | 'units'>('calls');
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
 
   // Connection State Machine
@@ -364,7 +361,7 @@ export function CommandView({
         </div>
       </div>
 
-      {/* 3. Collapsible Overlay Toggles (768px – 1279px) */}
+      {/* 3. Collapsible Calls Overlay Toggle (768px – 1279px) */}
       <div className="hidden md:flex xl:hidden absolute top-4 right-4 z-20 items-center gap-2 pointer-events-auto">
         <button
           onClick={() => setOverlayPanel((prev) => (prev === 'calls' ? null : 'calls'))}
@@ -378,23 +375,11 @@ export function CommandView({
           <IconCall size={13} />
           <span>Calls ({pendingCalls.length})</span>
         </button>
-        <button
-          onClick={() => setOverlayPanel((prev) => (prev === 'units' ? null : 'units'))}
-          aria-label="Toggle Units Overlay"
-          className={`px-3 py-1.5 rounded-[8px] text-xs font-mono-numbers border backdrop-blur-md transition-all shadow-xs flex items-center gap-1.5 cursor-pointer focus-ring active:scale-95 ${
-            overlayPanel === 'units'
-              ? 'bg-[var(--ink)] text-[var(--bg-app)] border-[var(--ink)] font-medium'
-              : 'bg-[var(--surface)]/90 text-[var(--ink)] border-[var(--line)] hover:border-[var(--line)]'
-          }`}
-        >
-          <IconUnit size={13} />
-          <span>Units ({ambulances.length})</span>
-        </button>
       </div>
 
-      {/* 4. Left Panel "Calls" (≥1280 persistent, 768-1279 collapsible overlay, <768 in bottom sheet) */}
+      {/* 4. Right Panel "Calls" (≥1280 persistent, 768-1279 collapsible overlay, <768 in bottom sheet) */}
       <div
-        className={`absolute left-3 sm:left-4 bottom-20 top-20 sm:top-24 z-25 pointer-events-auto flex-col transition-all duration-240 ${
+        className={`absolute right-3 sm:right-4 bottom-20 top-20 sm:top-24 z-25 pointer-events-auto flex-col transition-all duration-240 ${
           callsPanelTab === 'table' ? 'w-[360px] sm:w-[480px] lg:w-[540px]' : 'w-[320px] sm:w-[360px]'
         } ${
           overlayPanel === 'calls' ? 'flex' : 'hidden xl:flex'
@@ -413,24 +398,7 @@ export function CommandView({
         />
       </div>
 
-      {/* 5. Right Floating Panel "Units" (≥1280 persistent, 768-1279 collapsible overlay, <768 in bottom sheet) */}
-      <div
-        className={`absolute right-3 sm:right-4 bottom-20 top-20 sm:top-24 w-[290px] z-25 pointer-events-auto flex-col transition-all duration-240 ${
-          overlayPanel === 'units' ? 'flex' : 'hidden xl:flex'
-        }`}
-      >
-        <UnitsSlip
-          units={ambulances}
-          selectedUnitId={selectedUnit?.id}
-          onSelectUnit={handleSelectUnit}
-          zoneName={(zoneId) => {
-            const zone = zoneMap.get(zoneId);
-            return zone ? `${zone.id} · ${zone.name}` : `Zone ${zoneId}`;
-          }}
-        />
-      </div>
-
-      {/* 6. Mobile Draggable Bottom Sheet (390px - 767px) */}
+      {/* 5. Mobile Draggable Bottom Sheet (390px - 767px) */}
       <div
         className={`md:hidden absolute left-0 right-0 bottom-0 z-30 bg-[var(--surface)]/98 backdrop-blur-md border-t border-[var(--line)] shadow-2xl rounded-t-[16px] flex flex-col transition-all duration-240 ease-[cubic-bezier(0.16,1,0.3,1)] pointer-events-auto ${
           sheetSnap === 'peek' ? 'h-14' : sheetSnap === 'half' ? 'h-[46%]' : 'h-[78%]'
@@ -458,36 +426,11 @@ export function CommandView({
           <div className="w-10 h-1 rounded-full bg-[var(--line)]" />
         </button>
 
-        {/* Sheet Tabs Bar */}
+        {/* Calls Sheet Controls */}
         <div className="flex items-center justify-between px-3 pb-2 border-b border-[var(--line)] shrink-0">
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => {
-                setSheetTab('calls');
-                if (sheetSnap === 'peek') setSheetSnap('half');
-              }}
-              className={`px-2.5 py-1 text-xs font-mono-numbers uppercase tracking-wider rounded-[6px] transition-colors focus-ring cursor-pointer ${
-                sheetTab === 'calls'
-                  ? 'bg-[var(--ink)] text-[var(--bg-app)] font-medium'
-                  : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
-              }`}
-            >
-              Calls ({hasLoadedState ? pendingCalls.length : '…'})
-            </button>
-            <button
-              onClick={() => {
-                setSheetTab('units');
-                if (sheetSnap === 'peek') setSheetSnap('half');
-              }}
-              className={`px-2.5 py-1 text-xs font-mono-numbers uppercase tracking-wider rounded-[6px] transition-colors focus-ring cursor-pointer ${
-                sheetTab === 'units'
-                  ? 'bg-[var(--ink)] text-[var(--bg-app)] font-medium'
-                  : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
-              }`}
-            >
-              Units ({hasLoadedState ? ambulances.length : '…'})
-            </button>
-          </div>
+          <span className="px-2.5 py-1 text-xs font-mono-numbers uppercase tracking-wider text-[var(--ink)]">
+            Calls ({hasLoadedState ? pendingCalls.length : '…'})
+          </span>
 
           <div className="flex items-center gap-1.5">
             <button
@@ -510,61 +453,19 @@ export function CommandView({
         {/* Sheet Scroll Body */}
         {sheetSnap !== 'peek' && (
           <div className="flex-1 overflow-y-auto p-2 divide-y divide-[var(--line)]">
-            {sheetTab === 'calls' ? (
-              pendingCalls.length === 0 ? (
-                <div className="py-8 text-center text-xs font-mono-numbers text-[var(--ink-muted)]">
-                  No pending calls in queue
-                </div>
-              ) : (
-                pendingCalls.map((call) => {
-                  const zone = zoneMap.get(call.zoneId);
-                  const isSelected = selectedCall?.id === call.id;
-                  return (
-                    <div
-                      key={call.id}
-                      onClick={() => {
-                        handleSelectCall(call);
-                        setSheetSnap('peek');
-                      }}
-                      className={`p-2.5 rounded-[6px] transition-colors cursor-pointer flex items-center justify-between gap-2 ${
-                        isSelected
-                          ? 'bg-[var(--surface-raised)] ring-1 ring-[var(--line)]'
-                          : 'hover:bg-[var(--surface-raised)]/70'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <TriageTag priority={call.priority} weight={call.weight} size="sm" />
-                        <div className="flex flex-col min-w-0">
-                          <span className="font-mono-numbers text-xs font-semibold text-[var(--ink)] truncate">
-                            {call.id}
-                          </span>
-                          <span className="font-mono-numbers text-[10px] text-[var(--ink-muted)] truncate">
-                            {zone ? `${zone.id} · ${zone.name}` : `Zone ${call.zoneId}`}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end shrink-0">
-                        <span className="font-mono-numbers text-[11px] text-[var(--ink)] font-medium tabular-nums">
-                          {formatWaitTime(call.requestedAt)}
-                        </span>
-                        <span className="font-mono-numbers text-[9px] text-[var(--ink-subtle)] uppercase">
-                          waiting
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })
-              )
+            {pendingCalls.length === 0 ? (
+              <div className="py-8 text-center text-xs font-mono-numbers text-[var(--ink-muted)]">
+                No pending calls in queue
+              </div>
             ) : (
-              ambulances.map((unit) => {
-                const zone = zoneMap.get(unit.zoneId);
-                const isSelected = selectedUnit?.id === unit.id;
-                const isAvailable = unit.status === 'Available';
+              pendingCalls.map((call) => {
+                const zone = zoneMap.get(call.zoneId);
+                const isSelected = selectedCall?.id === call.id;
                 return (
                   <div
-                    key={unit.id}
+                    key={call.id}
                     onClick={() => {
-                      handleSelectUnit(unit);
+                      handleSelectCall(call);
                       setSheetSnap('peek');
                     }}
                     className={`p-2.5 rounded-[6px] transition-colors cursor-pointer flex items-center justify-between gap-2 ${
@@ -573,35 +474,25 @@ export function CommandView({
                         : 'hover:bg-[var(--surface-raised)]/70'
                     }`}
                   >
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="w-2 h-2 rounded-full shrink-0"
-                        style={{
-                          backgroundColor: isAvailable ? 'var(--unit-available)' : 'var(--unit-busy)',
-                        }}
-                      />
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-mono-numbers text-xs font-semibold text-[var(--ink)]">
-                            {unit.id}
-                          </span>
-                          <span className="font-mono-numbers text-[10px] px-1 rounded-[2px] bg-[var(--surface-raised)] border border-[var(--line)] text-[var(--ink-muted)]">
-                            {unit.type}
-                          </span>
-                        </div>
-                        <span className="font-mono-numbers text-[10px] text-[var(--ink-muted)]">
-                          {zone ? `${zone.id} · ${zone.name}` : `Zone ${unit.zoneId}`}
+                    <div className="flex items-center gap-2 min-w-0">
+                      <TriageTag priority={call.priority} weight={call.weight} size="sm" />
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-mono-numbers text-xs font-semibold text-[var(--ink)] truncate">
+                          {call.id}
+                        </span>
+                        <span className="font-mono-numbers text-[10px] text-[var(--ink-muted)] truncate">
+                          {zone ? `${zone.id} · ${zone.name}` : `Zone ${call.zoneId}`}
                         </span>
                       </div>
                     </div>
-                    <span
-                      className="font-mono-numbers text-[10px] uppercase font-medium"
-                      style={{
-                        color: isAvailable ? 'var(--unit-available)' : 'var(--unit-busy)',
-                      }}
-                    >
-                      {unit.status}
-                    </span>
+                    <div className="flex flex-col items-end shrink-0">
+                      <span className="font-mono-numbers text-[11px] text-[var(--ink)] font-medium tabular-nums">
+                        {formatWaitTime(call.requestedAt)}
+                      </span>
+                      <span className="font-mono-numbers text-[9px] text-[var(--ink-subtle)] uppercase">
+                        waiting
+                      </span>
+                    </div>
                   </div>
                 );
               })
