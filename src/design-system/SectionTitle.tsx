@@ -41,23 +41,8 @@ export function SectionTitle({
     return parts.map((part, index) => {
       if (part.toLowerCase() === accentWord.toLowerCase()) {
         return (
-          <span key={index} className="relative inline-block italic text-[var(--signal)] px-0.5">
+          <span key={index} className="inline-block text-[var(--ink)] px-0.5">
             {part}
-            {/* Hand-drawn underline SVG */}
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 100 12"
-              preserveAspectRatio="none"
-              className="absolute -bottom-1 left-0 w-full h-2 overflow-visible text-[var(--signal)] pointer-events-none"
-            >
-              <path
-                d="M 2 8 C 30 2, 70 12, 98 6"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-            </svg>
           </span>
         );
       }
