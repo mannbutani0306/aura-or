@@ -30,7 +30,7 @@ Anti-AI-look: no purple/blue gradients, gradient text, glassmorphism, uniform ro
 
 ## Working rules for Copilot
 1. Read before writing: open only the files you need; prefer small, typed, focused modules over editing 1000-line files wholesale (split them).
-2. Work in the numbered steps of the prompt. After each step: run `npm run lint` (and tests when they exist), fix errors, commit with a conventional message (`feat(ui): …`), then update PROGRESS.md (what is done, what is next, any decision).
-3. If context runs short: finish the current step, update PROGRESS.md, and stop. Do not leave half-edited files.
+2. Work in the numbered steps of the prompt. After each step: run `npm run lint` (and tests when they exist), fix errors, and commit with a conventional message (`feat(ui): …`).
+3. If context runs short: finish the current step and stop. Do not leave half-edited files.
 4. Never print, log or commit secrets. `.env` stays git-ignored; only `.env.example` lists names.
 5. Do not change the database contract or engine maths unless the prompt says so.

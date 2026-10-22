@@ -72,7 +72,7 @@ Each screen also has Paper/Night captures at desktop, tablet, and 390px in [`doc
 - The optimizer assigns at most one call per unit per solve. It does not solve a rolling multi-call schedule with service-time sequencing.
 - Route blocking and dispatch lifecycle are reflected by the current graph and database transitions; the database triggers remain authoritative for persisted state.
 - The demo Supabase RLS policy lets anyone holding the public anon key write operational tables. The security next step is Supabase Auth with role-based policies and restricted writes.
-- The provided guide PDF/PPT was not present in this repository. The numbered evidence map is in [`docs/REPORT_MAP.md`](docs/REPORT_MAP.md); section/slide titles must be checked against the original guide.
+- The provided guide PDF/PPT was not present in this repository, so report and slide titles have not been verified against it.
 - If the configured PostgREST schema does not expose `ems_cases`, Insights uses the provided 50-row workbook sample and labels that source instead of presenting it as live data.
 
 ## Run Locally
@@ -112,10 +112,8 @@ python python/pulp_reference.py
 
 ## Deployment
 
-Render configuration and click-by-click instructions are in [`DEPLOY.md`](DEPLOY.md). Railway can use the same build/start commands and environment variable names. The Render health check is `/api/health`.
+Render configuration is in [`render.yaml`](render.yaml). Set the hosting environment variables listed in [`.env.example`](.env.example); the Render health check is `/api/health`. Railway can use the same build/start commands.
 
 ## Further Reading
 
-- [VIVA questions and answers](docs/VIVA.md)
-- [Guide report/PPT evidence map](docs/REPORT_MAP.md)
-- [QA checklist](docs/QA.md)
+- [Screenshots](docs/screenshots/)
